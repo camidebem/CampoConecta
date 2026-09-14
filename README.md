@@ -2,6 +2,10 @@
 
 ## Sobre o Projeto
 
+O CampoConecta é o sistema distribuído desenvolvido como Trabalho Prático da disciplina GCC129 (Sistemas Distribuídos, 2026/2). O objetivo da disciplina é que cada grupo constitua uma startup fictícia e desenvolva, ao longo do semestre, um sistema distribuído completo que resolva um problema real com impacto social identificável.
+
+Neste projeto, a startup conecta produtores da agricultura familiar a prefeituras e escolas, viabilizando o cumprimento da cota mínima de 30% de compras institucionais exigida pela Lei do PNAE (Lei nº 11.947/2009).
+
 ## O Problema
 
 A Lei nº 11.947/2009 exige que ao menos 30% dos recursos do FNDE para merenda escolar sejam usados na compra de produtos da agricultura familiar. Apesar disso, cumprir essa cota está longe de ser trivial.
