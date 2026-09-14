@@ -26,6 +26,22 @@ Existe, portanto, uma lacuna operacional real entre a obrigação legal e a capa
 
 ## Impacto Social
 
+O CampoConecta gera impacto direto em três frentes principais:
+
+- **Produtores familiares:** ganham acesso simplificado e desburocratizado a um mercado institucional estável, garantindo escoamento da produção e previsibilidade de renda.
+- **Alunos da rede pública:** passam a receber uma alimentação escolar mais diversa, fresca e nutritiva, cumprindo o propósito original da legislação.
+- **Prefeituras:** conseguem sair da situação de não conformidade legal com a cota do PNAE, reduzindo o esforço administrativo e burocrático.
+
+Para acompanhar a efetividade da solução, o impacto social pode ser medido por meio das seguintes métricas:
+
+- Percentual de chamadas públicas efetivamente preenchidas na região de atuação.
+- Tempo médio entre a publicação do edital e a entrega efetiva dos alimentos nas escolas.
+- Número de produtores certificados participando ativamente do sistema ao longo do tempo.
+- Aumento no volume de compras da agricultura familiar realizadas por municípios parceiros.
+- Índice de satisfação de escolas, gestores e produtores em relação ao processo de compra e entrega.
+
 ## Visão Geral da Solução
+
+Em desenvolvimento pela equipe responsável.
 
 ## Integrantes
