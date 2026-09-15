@@ -71,17 +71,13 @@ Para acompanhar a efetividade da solução, o impacto social pode ser medido por
 
 ## 🚀 Visão Geral da Solução
 
-O CampoConecta atua como uma ponte direta entre a oferta (produtores locais) e a demanda legal obrigatória (prefeituras e escolas), atacando as falhas de comunicação e organização do modelo atual. O sistema foca no fluxo de negócio prático para os usuários, operando da seguinte forma:  
+O CampoConecta atua como uma ponte direta entre a oferta (produtores locais) e a demanda legal obrigatória (prefeituras e escolas), atacando as falhas de comunicação e organização do modelo atual. O sistema foca no fluxo de negócio prático para os usuários, operando da seguinte forma:
 
-Publicação de Demanda: A prefeitura cadastra e publica um edital de chamada pública detalhando os itens necessários, quantidades e prazos.  
-
-Propostas: Os produtores familiares cadastrados visualizam os editais compatíveis com a sua produção e enviam suas propostas diretamente pela plataforma.  
-
-Alocação: O sistema realiza a distribuição das compras entre os produtores, respeitando a capacidade produtiva de cada um e os critérios definidos no edital.  
-
-Logística: A entrega dos alimentos é agendada e, posteriormente, confirmada fisicamente na escola recebedora.  
-
-Pagamento: Após a confirmação do recebimento da mercadoria, o sistema libera o pagamento ao produtor.
+- **Publicação de Demanda:** A prefeitura cadastra e publica um edital de chamada pública detalhando os itens necessários, quantidades e prazos.
+- **Propostas:** Os produtores familiares cadastrados visualizam os editais compatíveis com a sua produção e enviam suas propostas diretamente pela plataforma.
+- **Alocação:** O sistema realiza a distribuição das compras entre os produtores, respeitando a capacidade produtiva de cada um e os critérios definidos no edital.
+- **Logística:** A entrega dos alimentos é agendada e, posteriormente, confirmada fisicamente na escola recebedora.
+- **Pagamento:** Após a confirmação do recebimento da mercadoria, o sistema libera o pagamento ao produtor.
 
 ## 👥 Integrantes
 
