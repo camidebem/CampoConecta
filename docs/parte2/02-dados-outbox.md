@@ -226,7 +226,7 @@ Regra geral: **defasagem é aceitável em leitura, nunca em decisão**. Saldo, c
 
 | Operação | Dois efeitos possíveis | Risco | Tratamento |
 |---|---|---|---|
-| Confirmar entidade + publicar evento | Banco e broker | Divergência se falhar entre os dois | **Eliminado** pelo outbox transacional (seção seguinte e `02-dados-outbox.md`) |
+| Confirmar entidade + publicar evento | Banco e broker | Divergência se falhar entre os dois | **Eliminado** pelo outbox transacional (seção 7) |
 | Atualização da projeção | Escrita de Compras e tabela de leitura | Projeção atrasada ou fora de ordem | Outbox + inbox + `versao` monotônica (detalhado em `03-cqrs.md`) |
 | Criação de compras na homologação | Uma compra e uma SAGA por item | Item criado sem SAGA | Mesma transação local: `plano_item`, `compra`, `saga_compra` e linha do outbox commitam juntos |
 | Cache de resposta do LLM (Parte 4) | Resposta e cache | Cache obsoleto após mudança de dado | Invalidação por evento e TTL; não é escopo da Parte 2 |
