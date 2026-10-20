@@ -79,7 +79,23 @@ O CampoConecta atua como uma ponte direta entre a oferta (produtores locais) e a
 - **Logística:** A entrega dos alimentos é agendada e, posteriormente, confirmada fisicamente na escola recebedora.
 - **Pagamento:** Após a confirmação do recebimento da mercadoria, o sistema libera o pagamento ao produtor.
 
-## 👥 Integrantes
+## � Documentação
+
+A documentação da **Parte 2 (arquitetura)** fica em `docs/`. O ponto de partida é a base comum, que fixa serviços, contratos e decisões compartilhadas entre as três frentes de trabalho.
+
+| Documento | Conteúdo |
+|---|---|
+| [Base comum](docs/parte2/00-base-comum.md) | Referência única: escopo, serviços, SAGA, CQRS, outbox e organização dos documentos |
+| [Serviços e fronteiras](docs/parte2/01-servicos.md) | Decomposição, justificativa das fronteiras, alternativas descartadas, diagramas e padrões |
+| [Dados, consistência e outbox](docs/parte2/02-dados-outbox.md) | Modelo de dados, concorrência nas reservas, consistência eventual, outbox e inbox |
+| [CQRS em Compras](docs/parte2/03-cqrs.md) | Modelo de escrita e leitura, projeção `AcompanhamentoCompra`, defasagem e reconstrução |
+| [Princípios e padrões](docs/parte2/08-padroes-e-principios.md) | SOLID, padrões GoF e padrões arquiteturais aplicados ao projeto |
+| [ADRs](docs/adr/README.md) | Decisões registradas com contexto, alternativas consideradas e consequências |
+| [Plano de trabalho](docs/planejamento/plano-parte2.md) | Distribuição das frentes, tarefas e matriz de fechamento |
+
+> A Parte 2 é documental: não há sistema em execução nesta etapa. A implementação, os containers e a integração de LLM pertencem às Partes 3 e 4.
+
+## �👥 Integrantes
 
 <table align="center">
   <tr>
