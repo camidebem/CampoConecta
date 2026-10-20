@@ -353,9 +353,36 @@ A unicidade de negócio é a segunda barreira: mesmo que a inbox fosse limpa por
 
 ## 9. Retry, DLQ e observabilidade
 
-- **Retry:** 5 tentativas com backoff exponencial (1 s, 2 s, 4 s, 8 s, 16 s) e *jitter* de até 20%.
-- **DLQ:** `<servico>.<tipo>.dlq`, com o payload original, o erro e o número de tentativas. Reprocessamento é manual e auditável.
-- **Métricas mínimas:** `outbox_pendentes`, `outbox_lag_segundos` (agora − `occurred_at` mais antigo pendente), `outbox_publicadas_total`, `outbox_falhas_total`, `dlq_profundidade`.
+### 9.1 Retry do relay (publicação)
+
+- 5 tentativas com backoff exponencial (1 s, 2 s, 4 s, 8 s, 16 s) e *jitter* de até 20%.
+- Falha em qualquer tentativa mantém a linha `PENDENTE`; nada é descartado por erro de publicação.
+
+### 9.2 Retry do consumidor (reentrega)
+
+O consumidor só confirma a leitura **depois** do `COMMIT`. Sem confirmação, o broker reentrega — e a inbox garante que o efeito não duplica.
+
+| Situação | Classificação | Ação |
+|---|---|---|
+| Broker, banco ou rede indisponível; `timeout`; deadlock ou falha de serialização | Transitória | Não confirmar; reentrega com backoff |
+| Payload inválido, `type` desconhecido, `schemaVersion` não suportada | Permanente | Não reentregar; registrar e enviar à DLQ |
+| Rejeição de negócio (`OfertaReservada` negativa, saldo insuficiente) | **Não é falha técnica** | Confirmar a leitura e tratar como resposta de negócio |
+
+Regras:
+
+- **Mesmo backoff do relay:** 5 tentativas (1 s, 2 s, 4 s, 8 s, 16 s) com *jitter*. A espera acontece em **fila de retry com TTL**, não bloqueando a fila principal.
+- **Nada de commit parcial:** inbox e efeitos na mesma transação; qualquer erro descarta a transação inteira.
+- **Sem retry infinito:** após a 5ª tentativa a mensagem vai para a DLQ — mensagem envenenada não pode travar a fila.
+- **Timeout de processamento** por mensagem; estouro equivalente a erro transitório.
+- **Retry não é compensação:** repetir `ReservarOferta` é medida técnica; desfazer é `LiberarOferta`, decidido pela SAGA. Confundir os dois gera efeito de negócio indevido.
+
+### 9.3 DLQ
+
+`<servico>.<tipo>.dlq`, com o payload original, o erro e o número de tentativas. Reprocessamento é manual e auditável.
+
+### 9.4 Observabilidade e retenção
+
+- **Métricas mínimas:** `outbox_pendentes`, `outbox_lag_segundos` (agora − `occurred_at` mais antigo pendente), `outbox_publicadas_total`, `outbox_falhas_total`, `consumo_retentativas_total`, `consumo_dlq_total`, `dlq_profundidade`.
 - **Logs:** `correlation_id` em toda linha, permitindo seguir uma compra da homologação até a projeção.
 - **Retenção:** linhas `PUBLICADA` são mantidas por 7 dias (auditoria) e depois removidas por rotina diária; a inbox mantém 30 dias.
 
@@ -370,4 +397,4 @@ A unicidade de negócio é a segunda barreira: mesmo que a inbox fosse limpa por
 | **Retry com backoff** | Relay e consumidores | Absorve indisponibilidade transitória sem perder mensagem |
 | **Dead Letter Channel** | Fila de mensagens mortas | Evita bloqueio por mensagem envenenada |
 
-**Aceite da frente (P1-05):** é possível responder, sem ambiguidade, (a) o que acontece se o relay cair com linhas pendentes, (b) o que acontece se ele publicar e falhar antes de marcar, (c) por que a reentrega não duplica reserva nem liberação de pagamento, e (d) onde a mensagem vai quando esgota as tentativas.
+**Aceite da frente (P1-05):** é possível responder, sem ambiguidade, (a) o que acontece se o relay cair com linhas pendentes, (b) o que acontece se ele publicar e falhar antes de marcar, (c) por que a reentrega não duplica reserva nem liberação de pagamento, (d) onde a mensagem vai quando esgota as tentativas e (e) quais erros são retentados, quais são permanentes e qual rejeição é de negócio.
