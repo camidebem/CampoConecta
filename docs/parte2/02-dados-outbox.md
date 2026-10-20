@@ -74,6 +74,90 @@ Os esquemas abaixo são o **modelo conceitual** acordado entre as frentes; nomes
 | `entrega` | `id`, `compra_id` (único), `escola_id`, `agendamento_id`, `status`, `recebido_em`, `recebido_por` | `status`: `AGENDADA`, `RECEBIDA`, `CANCELADA` |
 | `confirmacao_recebimento` | `id`, `entrega_id` (único), `confirmado_por`, `confirmado_em` | Uma confirmação por entrega |
 
+### 3.5 Diagrama do agregado Compras
+
+```mermaid
+erDiagram
+    PROPOSTA ||--o| PLANO_ITEM : "alocada em"
+    PLANO_ALOCACAO ||--|{ PLANO_ITEM : "contem"
+    PLANO_ITEM ||--o| COMPRA : "origina"
+    COMPRA ||--|| SAGA_COMPRA : "orquestrada por"
+    SAGA_COMPRA ||--o{ SAGA_OPERACAO : "registra"
+    COMPRA ||--o| LIBERACAO_PAGAMENTO : "libera"
+
+    PROPOSTA {
+        uuid id PK
+        uuid edital_id
+        uuid item_edital_id
+        uuid produtor_id
+        uuid oferta_id
+        numeric quantidade
+        text status
+        text chave_idempotencia UK
+        timestamptz snapshot_at
+    }
+    PLANO_ALOCACAO {
+        uuid id PK
+        uuid edital_id
+        uuid gestor_id
+        jsonb criterios_snapshot
+        text status
+        int versao
+    }
+    PLANO_ITEM {
+        uuid id PK
+        uuid plano_id FK
+        uuid proposta_id FK
+        numeric quantidade
+        text status
+        uuid compra_id
+    }
+    COMPRA {
+        uuid id PK
+        uuid plano_item_id FK
+        uuid item_edital_id
+        text status
+        int versao
+    }
+    SAGA_COMPRA {
+        uuid id PK
+        uuid compra_id UK
+        text estado
+        text proximo_comando
+        int tentativas
+    }
+    SAGA_OPERACAO {
+        uuid id PK
+        uuid saga_id FK
+        uuid operation_id UK
+        text comando
+        text estado
+        jsonb resposta
+    }
+    LIBERACAO_PAGAMENTO {
+        uuid id PK
+        uuid compra_id UK
+        numeric valor
+        text moeda
+    }
+```
+
+Só as relações internas aparecem no diagrama. `edital_id`, `item_edital_id`, `produtor_id` e `oferta_id` são **referências externas**: não existe FK entre bancos.
+
+### 3.6 Estados da Compra
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDENTE : homologação do plano
+    PENDENTE --> CONFIRMADA : SAGA concluída
+    PENDENTE --> CANCELADA : compensações concluídas
+    CONFIRMADA --> RECEBIDA : EntregaRecebida
+    RECEBIDA --> [*]
+    CANCELADA --> [*]
+```
+
+A Compra permanece `PENDENTE` durante a execução **e** durante a compensação. Os estados internos da SAGA (`EM_ANDAMENTO`, `COMPENSANDO`, `CONCLUIDA`, `CANCELADA`) são da frente de SAGA e não substituem este ciclo.
+
 ## 4. Referências externas e snapshots
 
 | Snapshot | Guardado em | Campos | Por quê |
@@ -192,6 +276,33 @@ COMMIT   -- os dois efeitos existem ou nenhum existe
 - **Falha ao publicar:** incrementa `attempts`, calcula `next_attempt_at` com backoff exponencial e *jitter*, mantém `PENDENTE`. Depois do limite, `FALHA` e alerta — sem descarte silencioso.
 - **Alternativa descartada nesta fase:** CDC com Debezium. Funciona, mas adiciona um conector e uma infraestrutura de leitura do WAL para um volume que o *polling* resolve; pode substituir o relay sem mudar contrato, porque a tabela e o envelope permanecem.
 
+### 7.3.1 Caminho de uma mensagem
+
+```mermaid
+flowchart LR
+    subgraph P1["1. Escrita atômica"]
+        A1["Altera a entidade"]
+        A2["Insere no outbox"]
+    end
+    subgraph P2["2. Relay"]
+        B1["Busca lote pendente"]
+        B2["Publica com confirm"]
+        B3["Marca published_at"]
+    end
+    subgraph P3["3. Consumidor"]
+        C1["Insere na inbox"]
+        C2["Aplica efeitos"]
+        C3["Confirma leitura"]
+    end
+
+    A1 --> A2 --> B1 --> B2 --> B3 --> C1 --> C2 --> C3
+
+    classDef etapa fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
+    classDef sucesso fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
+    class A1,A2,B1,B2,B3 etapa
+    class C1,C2,C3 sucesso
+```
+
 ### 7.4 Janelas de falha
 
 | # | Falha | Estado resultante | Consequência | Mitigação |
@@ -202,6 +313,29 @@ COMMIT   -- os dois efeitos existem ou nenhum existe
 | 4 | Consumidor processa e cai antes do `COMMIT` | Nada aplicado | Reentrega | Reprocessa do zero (inbox e efeitos na mesma transação) |
 | 5 | Consumidor faz `COMMIT` e cai antes do *ack* | Efeito aplicado | Reentrega | Inbox encontra `message_id` e ignora |
 | 6 | Mensagem envenenada (payload inválido) | `attempts` esgota | Bloqueio de fila se fosse retry infinito | Vai para DLQ e exige intervenção |
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant DB as PostgreSQL
+    participant R as Relay
+    participant MQ as RabbitMQ
+    participant K as Consumidor
+
+    Note over DB: COMMIT grava entidade + linha do outbox
+    R->>DB: SELECT ... FOR UPDATE SKIP LOCKED
+    DB-->>R: lote pendente
+    R->>MQ: publica (publisher confirm)
+    MQ-->>R: confirmado
+    Note over R,DB: falha antes de marcar published_at
+    R->>MQ: republica a mesma mensagem
+    MQ->>K: entrega com message_id repetido
+    K->>DB: INSERT na inbox + efeitos na mesma transação
+    DB-->>K: message_id já existe
+    K-->>MQ: confirma sem reaplicar efeito
+```
+
+A mensagem é entregue **duas vezes** e o efeito acontece **uma vez**: é esse o comportamento que precisamos garantir.
 
 **Conclusão:** o sistema é *at-least-once*. A garantia de efeito único vem da **inbox + unicidade de negócio** (`compra_id`/`operation_id`), não da entrega.
 
