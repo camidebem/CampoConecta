@@ -18,6 +18,25 @@ O CQRS resolve isso com **um modelo de escrita normalizado** (fonte de verdade) 
 
 **Por que só em Compras:** é o único serviço cujo dado de leitura é uma composição de quatro serviços e cuja escrita tem estado de processo (a SAGA). Em Editais e Ofertas, a leitura é praticamente a própria tabela; aplicar CQRS ali seria complexidade sem benefício.
 
+```mermaid
+flowchart LR
+    subgraph SEM["Sem projeção: 4 chamadas em série"]
+        B1["🧩 BFF"] --> S1["📋 Editais"]
+        B1 --> S2["🌾 Ofertas"]
+        B1 --> S3["🛒 Compras"]
+        B1 --> S4["🚚 Entregas"]
+    end
+
+    subgraph COM["Com projeção: 1 consulta"]
+        B2["🧩 BFF"] --> RM1[("📊 acompanhamento_compra")]
+    end
+
+    classDef custo fill:#ffebee,stroke:#c62828,color:#b71c1c
+    classDef ganho fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
+    class B1,S1,S2,S3,S4 custo
+    class B2,RM1 ganho
+```
+
 ## 2. Modelo de escrita
 
 Fonte de verdade — normalizado, transacional, sem campos derivados:
@@ -58,12 +77,19 @@ Tabela `acompanhamento_compra`, na mesma instância de Compras (um banco adicion
 
 ```mermaid
 flowchart LR
-    W["Transação de escrita em Compras"] --> O["Linha no outbox"]
-    O --> R["Relay"]
-    R --> Q{{"RabbitMQ"}}
-    Q --> I["Inbox do projetor"]
-    I --> P["Projetor"]
-    P -->|"upsert condicionado por versao"| RM[("acompanhamento_compra")]
+    W["✍️ Transação de escrita"] --> O["📤 Linha no outbox"]
+    O --> R["⚙️ Relay"]
+    R --> Q{{"🐇 RabbitMQ"}}
+    Q --> I["📥 Inbox do projetor"]
+    I --> P["🧠 Projetor"]
+    P -->|"upsert se versao > atual"| RM[("📊 acompanhamento_compra")]
+
+    classDef escrita fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
+    classDef infra fill:#fce4ec,stroke:#ad1457,color:#880e4f
+    classDef leitura fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
+    class W,O escrita
+    class R,Q,I infra
+    class P,RM leitura
 ```
 
 Eventos que alimentam a projeção (nomes canônicos):
@@ -98,7 +124,23 @@ Filas convencionais **não retêm** mensagens já consumidas. Portanto a reconst
 1. Truncar (ou criar uma nova geração de) `acompanhamento_compra`.
 2. Ler as tabelas de escrita de Compras: `compra`, `saga_compra`, `liberacao_pagamento` e os snapshots de `proposta`.
 3. Reprojetar em lote, na ordem de `versao`, de forma determinística.
-4. Republicar o resultado para os BFFs não é necessário — eles consultam a projeção.
+4. Trocar as gerações para os BFFs lerem a projeção nova, sem janela de tabela vazia.
+
+```mermaid
+flowchart LR
+    W[("🗃️ Tabelas de escrita")] --> RB["🔁 Reprojetar em lote"]
+    O["📤 Outbox pendente"] --> RB
+    RB --> G[("📊 Geração nova")]
+    G -->|"troca atômica"| L[("📊 acompanhamento_compra")]
+    L --> B["🧩 BFFs"]
+
+    classDef escrita fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
+    classDef proc fill:#fff3e0,stroke:#e65100,color:#bf360c
+    classDef leitura fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
+    class W,O escrita
+    class RB proc
+    class G,L,B leitura
+```
 
 Propriedades: a reconstrução é **idempotente** (pode rodar duas vezes), **não altera o modelo de escrita** e pode rodar em paralelo, com *swap* da geração ao final para não expor tabela vazia.
 
