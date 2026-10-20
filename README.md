@@ -90,7 +90,7 @@ A documentação da **Parte 2 (arquitetura)** fica em `docs/`. O ponto de partid
 | [Dados, consistência e outbox](docs/parte2/02-dados-outbox.md) | Modelo de dados, concorrência nas reservas, consistência eventual, outbox e inbox |
 | [CQRS em Compras](docs/parte2/03-cqrs.md) | Modelo de escrita e leitura, projeção `AcompanhamentoCompra`, defasagem e reconstrução |
 | [Princípios e padrões](docs/parte2/08-padroes-e-principios.md) | SOLID, padrões GoF e padrões arquiteturais aplicados ao projeto |
-| [ADRs](docs/adr/) | Decisões registradas com contexto, alternativas consideradas e consequências |
+| [ADRs](docs/adr/README.md) | Decisões registradas com contexto, alternativas consideradas e consequências |
 | [Plano de trabalho](docs/planejamento/plano-parte2.md) | Distribuição das frentes, tarefas e matriz de fechamento |
 
 > A Parte 2 é documental: não há sistema em execução nesta etapa. A implementação, os containers e a integração de LLM pertencem às Partes 3 e 4.
