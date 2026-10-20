@@ -1,0 +1,11 @@
+# Editor
+.vscode/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Ambiente e segredos locais
+.env
+.env.*
+*.local
