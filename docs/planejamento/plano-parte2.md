@@ -18,13 +18,13 @@
 
 ### Pessoa 1 — Serviços, dados e CQRS
 
-- [ ] **P1-01:** detalhar os quatro serviços, justificar fronteiras e alternativas descartadas (incluindo Escola/Prefeitura em Editais e Produtor em Ofertas).
-- [ ] **P1-02:** diagramas de componentes e de comunicação, com gateway, `authn-verify`, BFFs, broker e quatro bancos.
-- [ ] **P1-03:** entidades, referências externas, snapshots, instâncias e credenciais; justificar PostgreSQL por serviço.
-- [ ] **P1-04:** concorrência nas reservas, consistência eventual (lista de pontos) e pontos de dual write.
-- [ ] **P1-05:** outbox, relay e inbox, retries e falhas entre publicação e confirmação.
-- [ ] **P1-06:** CQRS de Compras: schemas conceituais da projeção, eventos de atualização, atraso e reconstrução a partir do modelo de escrita.
-- [ ] **P1-07:** README/índice e ADR de serviços, dados e CQRS.
+- [x] **P1-01:** detalhar os quatro serviços, justificar fronteiras e alternativas descartadas (incluindo Escola/Prefeitura em Editais e Produtor em Ofertas). → [`01-servicos.md`](../parte2/01-servicos.md)
+- [x] **P1-02:** diagramas de componentes e de comunicação, com gateway, `authn-verify`, BFFs, broker e quatro bancos. → [`01-servicos.md`](../parte2/01-servicos.md)
+- [x] **P1-03:** entidades, referências externas, snapshots, instâncias e credenciais; justificar PostgreSQL por serviço. → [`02-dados-outbox.md`](../parte2/02-dados-outbox.md) e [ADR 0002](../adr/0002-postgresql-por-servico.md)
+- [x] **P1-04:** concorrência nas reservas, consistência eventual (lista de pontos) e pontos de dual write. → [`02-dados-outbox.md`](../parte2/02-dados-outbox.md)
+- [x] **P1-05:** outbox, relay e inbox, retries e falhas entre publicação e confirmação. → [`02-dados-outbox.md`](../parte2/02-dados-outbox.md)
+- [x] **P1-06:** CQRS de Compras: schemas conceituais da projeção, eventos de atualização, atraso e reconstrução a partir do modelo de escrita. → [`03-cqrs.md`](../parte2/03-cqrs.md)
+- [x] **P1-07:** README/índice e ADR de serviços, dados e CQRS. → [`README.md`](../../README.md) e [`docs/adr/`](../adr/)
 
 **Aceite:** identifica-se o dono de cada dado, explica-se o que ocorre se o relay cair e mostra-se como uma escrita chega à consulta. Nenhum diagrama tem banco compartilhado.
 
