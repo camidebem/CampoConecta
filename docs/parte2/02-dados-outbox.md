@@ -79,7 +79,7 @@ Os esquemas abaixo são o **modelo conceitual** acordado entre as frentes; nomes
 ```mermaid
 erDiagram
     PROPOSTA ||--o| PLANO_ITEM : "alocada em"
-    PLANO_ALOCACAO ||--|{ PLANO_ITEM : "contem"
+    PLANO_ALOCACAO ||--|{ PLANO_ITEM : "contém"
     PLANO_ITEM ||--o| COMPRA : "origina"
     COMPRA ||--|| SAGA_COMPRA : "orquestrada por"
     SAGA_COMPRA ||--o{ SAGA_OPERACAO : "registra"
