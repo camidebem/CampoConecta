@@ -163,11 +163,11 @@ flowchart LR
     IDP["🔐 Provedor OIDC"]
     FNDE["🏛️ FNDE / SigPC"]
 
-    GESTOR -->|"publica edital e homologa plano"| SISTEMA
+    GESTOR -->|"publica edital"| SISTEMA
     ESCOLA -->|"confirma recebimento"| SISTEMA
-    PRODUTOR -->|"mantém oferta e envia proposta"| SISTEMA
+    PRODUTOR -->|"envia proposta"| SISTEMA
     SISTEMA -->|"autentica usuários"| IDP
-    SISTEMA -.->|"registro da execução (fora do escopo)"| FNDE
+    SISTEMA -.->|"registro (fora do escopo)"| FNDE
 
     classDef pessoa fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
     classDef sistema fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
@@ -176,6 +176,8 @@ flowchart LR
     class SISTEMA sistema
     class IDP,FNDE externo
 ```
+
+O gestor publica o edital e homologa o plano de alocação; o produtor mantém ofertas e envia propostas; a escola confirma o recebimento. O registro no FNDE/SigPC está fora do escopo desta entrega.
 
 ### 8.2 Componentes
 
@@ -327,13 +329,13 @@ flowchart TB
 ### 9.2 Fluxo assíncrono com outbox e inbox
 
 ```mermaid
-flowchart LR
+flowchart TD
     A["🛒 Compras: caso de uso da SAGA"] --> B["📤 Outbox Compras"]
     B --> C["⚙️ Relay Compras"]
     C --> MQ{{"🐇 RabbitMQ"}}
-    MQ -->|"1. AlocarDemanda"| E["📥 Inbox Editais"]
-    MQ -->|"1. ReservarOferta"| F["📥 Inbox Ofertas"]
-    MQ -->|"1. AgendarEntrega"| G["📥 Inbox Entregas"]
+    MQ -->|"AlocarDemanda"| E["📥 Inbox Editais"]
+    MQ -->|"ReservarOferta"| F["📥 Inbox Ofertas"]
+    MQ -->|"AgendarEntrega"| G["📥 Inbox Entregas"]
     E --> H["📋 Regra de negócio Editais"]
     F --> I["🌾 Regra de negócio Ofertas"]
     G --> J["🚚 Regra de negócio Entregas"]
@@ -343,8 +345,8 @@ flowchart LR
     K --> R["⚙️ Relay de cada serviço"]
     L --> R
     N --> R
-    R --> MQ
-    MQ -->|"2. Respostas e eventos"| P["📥 Inbox Compras"]
+    R --> MQ2{{"🐇 RabbitMQ (mesmo broker)"}}
+    MQ2 -->|"respostas e eventos"| P["📥 Inbox Compras"]
     P --> A
 
     classDef orq fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
@@ -352,7 +354,7 @@ flowchart LR
     classDef broker fill:#fce4ec,stroke:#ad1457,color:#880e4f
     class A,B,C,P orq
     class E,F,G,H,I,J,K,L,N,R parte
-    class MQ broker
+    class MQ,MQ2 broker
 ```
 
 **Leitura:** nenhum serviço publica direto no broker. A transação local grava a entidade **e** a linha do outbox; o relay publica depois. Na chegada, a inbox deduplica por `messageId` na mesma transação dos efeitos locais. Isso fecha o ciclo de idempotência dos dois lados (detalhes em [`02-dados-outbox.md`](./02-dados-outbox.md)).
