@@ -7,6 +7,18 @@
 
 Neste documento fixamos **quatro serviços de domínio**, explicamos por que a fronteira foi desenhada assim, quais alternativas descartamos e como cada serviço se organiza internamente. Nesta etapa não há implementação: as decisões são de projeto, e os padrões citados indicam **onde** eles serão aplicados na Parte 4, não um sistema já executável.
 
+### 1.1 Rastreabilidade dos requisitos
+
+| Requisito da Parte 2 | Onde atendemos |
+|---|---|
+| Pelo menos quatro serviços independentes | Seção 2 |
+| Responsabilidade de cada serviço | Seção 2 |
+| Justificativa das fronteiras | Seções 3 e 4 |
+| Diagrama de componentes | Seção 8.2 |
+| Diagrama de comunicação | Seções 8.3 e 9 |
+| Banco por serviço e dono de cada dado | Seção 5 e [`02-dados-outbox.md`](./02-dados-outbox.md) |
+| Padrões e princípios aplicados | Seção 7 e [`08-padroes-e-principios.md`](./08-padroes-e-principios.md) |
+
 ## 2. Quadro dos serviços
 
 | Serviço | Responsabilidade exclusiva | Entidades principais | Não deve fazer |
@@ -136,43 +148,72 @@ Cada módulo expõe um caso de uso e mantém seus repositórios; a comunicação
 | **Ports & Adapters** | Estrutura interna de cada serviço | Domínio testável sem infraestrutura |
 | **Facade** | BFFs (frente P2) | Agrega vários serviços em uma resposta por cliente |
 
-## 8. Diagrama de componentes
+## 8. Diagramas
+
+### 8.1 Contexto (C4 nível 1)
+
+Quem usa o CampoConecta e com quais sistemas externos ele conversa.
+
+```mermaid
+flowchart LR
+    GESTOR["👩‍💼 Gestor da prefeitura"]
+    ESCOLA["🏫 Escola"]
+    PRODUTOR["🧑‍🌾 Produtor familiar"]
+    SISTEMA["🌱 CampoConecta"]
+    IDP["🔐 Provedor OIDC"]
+    FNDE["🏛️ FNDE / SigPC"]
+
+    GESTOR -->|"publica edital e homologa plano"| SISTEMA
+    ESCOLA -->|"confirma recebimento"| SISTEMA
+    PRODUTOR -->|"mantém oferta e envia proposta"| SISTEMA
+    SISTEMA -->|"autentica usuários"| IDP
+    SISTEMA -.->|"registro da execução (fora do escopo)"| FNDE
+
+    classDef pessoa fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
+    classDef sistema fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
+    classDef externo fill:#f5f5f5,stroke:#9e9e9e,color:#424242
+    class GESTOR,ESCOLA,PRODUTOR pessoa
+    class SISTEMA sistema
+    class IDP,FNDE externo
+```
+
+### 8.2 Componentes
 
 Mostra a topologia completa: clientes, borda, BFFs, serviços de domínio, um banco por serviço e o broker.
 
 ```mermaid
 flowchart TB
-    subgraph CLIENTES["Clientes"]
-        WEB["Portal prefeitura/escola"]
-        APP["Aplicativo do produtor"]
+    subgraph CLIENTES["👥 Clientes"]
+        WEB["🖥️ Portal prefeitura/escola"]
+        APP["📱 Aplicativo do produtor"]
     end
 
-    subgraph BORDA["Borda"]
-        GW["API Gateway (NGINX)"]
-        AV["authn-verify"]
-        IDP["Provedor de identidade OIDC"]
+    subgraph BORDA["🛡️ Borda"]
+        GW["🚪 API Gateway NGINX"]
+        AV["🔑 authn-verify"]
+        IDP["🔐 Provedor OIDC"]
     end
 
-    subgraph BFFS["BFFs"]
-        BP["BFF prefeitura"]
-        BR["BFF produtor"]
+    subgraph BFFS["🧩 BFFs"]
+        BP["📊 BFF prefeitura"]
+        BR["📱 BFF produtor"]
     end
 
-    subgraph DOMINIO["Serviços de domínio"]
-        E["Editais"]
-        O["Ofertas"]
-        C["Compras"]
-        L["Entregas"]
+    subgraph DOMINIO["⚙️ Serviços de domínio"]
+        E["📋 Editais"]
+        O["🌾 Ofertas"]
+        C["🛒 Compras"]
+        L["🚚 Entregas"]
     end
 
-    subgraph DADOS["Bancos - uma instância por serviço"]
+    subgraph DADOS["🗄️ Bancos — uma instância por serviço"]
         DE[("BD Editais")]
         DO[("BD Ofertas")]
         DC[("BD Compras")]
         DL[("BD Entregas")]
     end
 
-    MQ{{"RabbitMQ"}}
+    MQ{{"🐇 RabbitMQ"}}
 
     WEB -->|"HTTPS"| GW
     APP -->|"HTTPS"| GW
@@ -195,9 +236,79 @@ flowchart TB
     O -.->|"comandos e eventos"| MQ
     C -.->|"comandos e eventos"| MQ
     L -.->|"comandos e eventos"| MQ
+
+    classDef cliente fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
+    classDef borda fill:#fff3e0,stroke:#e65100,color:#bf360c
+    classDef bff fill:#f3e5f5,stroke:#6a1b9a,color:#4a148c
+    classDef svc fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
+    classDef dado fill:#eceff1,stroke:#455a64,color:#263238
+    classDef broker fill:#fce4ec,stroke:#ad1457,color:#880e4f
+
+    class WEB,APP cliente
+    class GW,AV,IDP borda
+    class BP,BR bff
+    class E,O,C,L svc
+    class DE,DO,DC,DL dado
+    class MQ broker
 ```
 
 **Leitura:** a única porta de entrada é o gateway. As APIs de domínio não são expostas externamente; só os BFFs as acessam. Nenhuma seta liga um banco a outro — a comunicação entre serviços é sempre HTTP ou mensagem.
+
+### 8.3 Anatomia interna de um serviço
+
+Todo serviço segue o mesmo desenho: o domínio fica no centro e a infraestrutura fica nas bordas, atrás de portas.
+
+```mermaid
+flowchart TB
+    subgraph APRES["1. Apresentação"]
+        R["🌐 Rotas /api/v1"]
+        V["✅ Validação de entrada"]
+    end
+
+    subgraph APLIC["2. Aplicação"]
+        UC["🎯 Casos de uso"]
+        TX["🔒 Transação local"]
+    end
+
+    subgraph DOM["3. Domínio"]
+        ENT["📦 Entidades e invariantes"]
+        POL["🧠 Políticas: Strategy e State"]
+    end
+
+    subgraph INFRA["4. Infraestrutura"]
+        REPO["🗃️ Repositório SQL"]
+        OUT["📤 Relay do outbox"]
+        CONS["📥 Consumidor com inbox"]
+        CLI["🔌 Cliente HTTP e broker"]
+    end
+
+    PG[("PostgreSQL")]
+    MQ{{"🐇 RabbitMQ"}}
+
+    R --> UC
+    V --> UC
+    UC --> ENT
+    UC --> POL
+    UC --> TX
+    UC -.->|"porta"| REPO
+    UC -.->|"porta"| CLI
+    CONS --> UC
+    REPO --> PG
+    TX --> PG
+    OUT --> PG
+    OUT --> MQ
+
+    classDef apres fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
+    classDef aplic fill:#fff3e0,stroke:#e65100,color:#bf360c
+    classDef dom fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
+    classDef infra fill:#eceff1,stroke:#455a64,color:#263238
+    class R,V apres
+    class UC,TX aplic
+    class ENT,POL dom
+    class REPO,OUT,CONS,CLI infra
+```
+
+**Regra de dependência:** as setas apontam para dentro. Domínio não conhece FastAPI, PostgreSQL nem RabbitMQ; trocar a infraestrutura não altera regra de negócio.
 
 ## 9. Diagrama de comunicação
 
@@ -217,24 +328,31 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-    A["Compras (caso de uso da SAGA)"] --> B["Outbox Compras"]
-    B --> C["Relay Compras"]
-    C --> MQ{{"RabbitMQ"}}
-    MQ -->|"AlocarDemanda"| E["Inbox Editais"]
-    MQ -->|"ReservarOferta"| F["Inbox Ofertas"]
-    MQ -->|"AgendarEntrega"| G["Inbox Entregas"]
-    E --> H["Regra de negócio Editais"]
-    F --> I["Regra de negócio Ofertas"]
-    G --> J["Regra de negócio Entregas"]
-    H --> K["Outbox Editais"]
-    I --> L["Outbox Ofertas"]
-    J --> N["Outbox Entregas"]
-    K --> R["Relay de cada serviço"]
+    A["🛒 Compras: caso de uso da SAGA"] --> B["📤 Outbox Compras"]
+    B --> C["⚙️ Relay Compras"]
+    C --> MQ{{"🐇 RabbitMQ"}}
+    MQ -->|"1. AlocarDemanda"| E["📥 Inbox Editais"]
+    MQ -->|"1. ReservarOferta"| F["📥 Inbox Ofertas"]
+    MQ -->|"1. AgendarEntrega"| G["📥 Inbox Entregas"]
+    E --> H["📋 Regra de negócio Editais"]
+    F --> I["🌾 Regra de negócio Ofertas"]
+    G --> J["🚚 Regra de negócio Entregas"]
+    H --> K["📤 Outbox Editais"]
+    I --> L["📤 Outbox Ofertas"]
+    J --> N["📤 Outbox Entregas"]
+    K --> R["⚙️ Relay de cada serviço"]
     L --> R
     N --> R
     R --> MQ
-    MQ -->|"respostas e eventos"| P["Inbox Compras"]
+    MQ -->|"2. Respostas e eventos"| P["📥 Inbox Compras"]
     P --> A
+
+    classDef orq fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
+    classDef parte fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
+    classDef broker fill:#fce4ec,stroke:#ad1457,color:#880e4f
+    class A,B,C,P orq
+    class E,F,G,H,I,J,K,L,N,R parte
+    class MQ broker
 ```
 
 **Leitura:** nenhum serviço publica direto no broker. A transação local grava a entidade **e** a linha do outbox; o relay publica depois. Na chegada, a inbox deduplica por `messageId` na mesma transação dos efeitos locais. Isso fecha o ciclo de idempotência dos dois lados (detalhes em [`02-dados-outbox.md`](./02-dados-outbox.md)).
@@ -255,3 +373,13 @@ flowchart LR
 2. **Snapshot desatualizado.** Aceito para exibição; toda decisão crítica consulta o dono (seção 5).
 3. **Edital encerrado durante a SAGA.** A reserva atômica em Editais decide; a compra é cancelada com compensação (documentado na frente de SAGA).
 4. **Nomes ainda não congelados.** `AlocacaoDemanda`, `ReservaOferta` e `AcompanhamentoCompra` são os nomes canônicos usados nas três frentes; mudança exige PR na base comum.
+
+## 12. Critérios de aceite da frente
+
+- [x] Quatro serviços com responsabilidade exclusiva e entidades próprias.
+- [x] Toda fronteira justificada, com alternativa correspondente descartada.
+- [x] Nenhum diagrama mostra banco compartilhado ou acesso SQL cruzado.
+- [x] Diagrama de componentes contempla gateway, `authn-verify`, BFFs, broker e quatro bancos.
+- [x] Diagrama de comunicação separa o caminho síncrono do assíncrono e mostra outbox e inbox.
+- [x] Dono de cada dado identificado e snapshots classificados como cópia.
+- [x] Estrutura interna e padrões aplicados descritos de forma verificável na Parte 4.
