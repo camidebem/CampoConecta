@@ -89,33 +89,22 @@ erDiagram
         uuid id PK
         uuid edital_id
         uuid item_edital_id
-        uuid produtor_id
-        uuid oferta_id
-        numeric quantidade
         text status
-        text chave_idempotencia UK
-        timestamptz snapshot_at
     }
     PLANO_ALOCACAO {
         uuid id PK
         uuid edital_id
-        uuid gestor_id
-        jsonb criterios_snapshot
         text status
-        int versao
     }
     PLANO_ITEM {
         uuid id PK
         uuid plano_id FK
         uuid proposta_id FK
-        numeric quantidade
         text status
-        uuid compra_id
     }
     COMPRA {
         uuid id PK
         uuid plano_item_id FK
-        uuid item_edital_id
         text status
         int versao
     }
@@ -123,26 +112,21 @@ erDiagram
         uuid id PK
         uuid compra_id UK
         text estado
-        text proximo_comando
-        int tentativas
     }
     SAGA_OPERACAO {
         uuid id PK
         uuid saga_id FK
         uuid operation_id UK
-        text comando
         text estado
-        jsonb resposta
     }
     LIBERACAO_PAGAMENTO {
         uuid id PK
         uuid compra_id UK
         numeric valor
-        text moeda
     }
 ```
 
-Só as relações internas aparecem no diagrama. `edital_id`, `item_edital_id`, `produtor_id` e `oferta_id` são **referências externas**: não existe FK entre bancos.
+O diagrama mostra as relações e os campos que identificam cada entidade. Os demais campos estão nas tabelas das seções 3.1 a 3.4. `edital_id`, `item_edital_id`, `produtor_id` e `oferta_id` são **referências externas**: não existe FK entre bancos.
 
 ### 3.6 Estados da Compra
 
