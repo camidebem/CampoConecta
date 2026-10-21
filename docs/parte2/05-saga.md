@@ -364,8 +364,8 @@ sequenceDiagram
 
     L->>MQ: EntregaRecebida (outbox → broker)
     MQ->>C: EntregaRecebida
-    Note over C: Transação local:<br/>inbox + Compra RECEBIDA<br/>INSERT liberacao_pagamento (UNIQUE compra_id)<br/>outbox: LiberacaoPagamentoRegistrada
-    C->>MQ: LiberacaoPagamentoRegistrada (alimenta a projeção AcompanhamentoCompra)
+    Note over C: Transação local:<br/>inbox + Compra RECEBIDA<br/>INSERT liberacao_pagamento (UNIQUE compra_id)<br/>outbox: CompraRecebida + LiberacaoPagamentoRegistrada
+    C->>MQ: CompraRecebida e LiberacaoPagamentoRegistrada (alimentam a projeção AcompanhamentoCompra)
 ```
 
 **Regras:**

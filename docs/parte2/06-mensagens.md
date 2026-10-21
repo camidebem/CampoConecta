@@ -199,12 +199,13 @@ O código vira o `motivo_falha` da SAGA e é exibido no acompanhamento da compra
 | `SagaProgrediu` | Compras | Compra | `compraId`, `sagaId`, `estadoSaga`, `etapa`, `motivoFalha` (opcional) | Projeção |
 | `CompraConfirmada` | Compras | Compra | `compraId`, `entregaId`, `dataEntrega` | Projeção |
 | `CompraCancelada` | Compras | Compra | `compraId`, `motivo` | Projeção |
-| `EntregaAgendada` | Entregas | Entrega | Mesmo payload da resposta da seção 4 | Compras (orquestrador) e projeção |
-| `EntregaRecebida` | Entregas | Entrega | `entregaId`, `compraId`, `escolaId`, `quantidadeRecebida`, `recebidoEm` | Compras (marca `RECEBIDA` e libera pagamento) e projeção |
+| `EntregaRecebida` | Entregas | Entrega | `entregaId`, `compraId`, `escolaId`, `quantidadeRecebida`, `recebidoEm` | Compras (marca `RECEBIDA` e libera pagamento) |
+| `CompraRecebida` | Compras | Compra | `compraId`, `entregaId`, `recebidoEm` | Projeção |
 | `LiberacaoPagamentoRegistrada` | Compras | Compra | `compraId`, `liberacaoPagamentoId`, `valor {valor, moeda}`, `liberadoEm` | Projeção; ponto de integração financeira futura |
 
 - `CompraCriada` carrega os nomes de edital, escola, produtor e produto vindos dos **snapshots da proposta**, para que a projeção monte a linha completa sem consultar outros serviços.
-- `EntregaAgendada` é ao mesmo tempo a resposta de sucesso do passo 3 da SAGA e um evento de interesse da projeção (data da entrega).
+- A projeção consome **apenas eventos de Compras**, todos com a Compra como agregado, para que a ordem por `aggregateVersion` seja válida (ver [`03-cqrs.md`](./03-cqrs.md)). Por isso a data da entrega chega por `CompraConfirmada`, e o recebimento por `CompraRecebida`, em vez dos eventos de Entregas.
+- `EntregaAgendada` é a resposta de sucesso do passo 3 (seção 4) e é consumida apenas pelo orquestrador.
 - Os eventos de Compras também são o ponto de integração previsto para a base de conhecimento das etapas seguintes; nenhum consumidor novo exige mudança nos emissores.
 
 `EntregaRecebida`:
@@ -244,7 +245,7 @@ O código vira o `motivo_falha` da SAGA e é exibido no acompanhamento da compra
 | `entregas.comandos` | Entregas | `entregas.AgendarEntrega`, `entregas.CancelarAgendamento` |
 | `compras.saga` | Compras (orquestrador) | Respostas da seção 4 (`editais.*`, `ofertas.*`, `entregas.*`, exceto `entregas.EntregaRecebida`) |
 | `compras.recebimentos` | Compras (recebimento e pagamento) | `entregas.EntregaRecebida` |
-| `compras.projecao` | Compras (projetor do CQRS) | `compras.*`, `entregas.EntregaAgendada`, `entregas.EntregaRecebida` |
+| `compras.projecao` | Compras (projetor do CQRS) | `compras.*` |
 
 - Cada fila tem a fila de retry com TTL e a fila de mensagens mortas `<servico>.<tipo>.dlq` descritas em [`02-dados-outbox.md`](./02-dados-outbox.md), seção 9.
 - Separar `compras.saga`, `compras.recebimentos` e `compras.projecao` isola falhas: uma projeção lenta não atrasa a SAGA, e um problema no recebimento não bloqueia novas compras.
@@ -261,7 +262,7 @@ O código vira o `motivo_falha` da SAGA e é exibido no acompanhamento da compra
 | `OfertaReservada` | Resposta | Ofertas | Compras | 2 (sucesso) |
 | `ReservaOfertaRejeitada` | Resposta | Ofertas | Compras | 2 (rejeição) |
 | `AgendarEntrega` | Comando | Compras | Entregas | 3 |
-| `EntregaAgendada` | Resposta e evento | Entregas | Compras, projeção | 3 (sucesso) |
+| `EntregaAgendada` | Resposta | Entregas | Compras | 3 (sucesso) |
 | `AgendamentoRejeitado` | Resposta | Entregas | Compras | 3 (rejeição) |
 | `CancelarAgendamento` | Comando de compensação | Compras | Entregas | Compensa 3 |
 | `AgendamentoCancelado` | Resposta | Entregas | Compras | Compensa 3 |
@@ -273,7 +274,8 @@ O código vira o `motivo_falha` da SAGA e é exibido no acompanhamento da compra
 | `SagaProgrediu` | Evento | Compras | Projeção | Cada transição |
 | `CompraConfirmada` | Evento | Compras | Projeção | 4 |
 | `CompraCancelada` | Evento | Compras | Projeção | Fim da compensação |
-| `EntregaRecebida` | Evento | Entregas | Compras, projeção | Fora da SAGA |
+| `EntregaRecebida` | Evento | Entregas | Compras | Fora da SAGA |
+| `CompraRecebida` | Evento | Compras | Projeção | Fora da SAGA |
 | `LiberacaoPagamentoRegistrada` | Evento | Compras | Projeção | Fora da SAGA |
 
 ## 8. Deduplicação e ordem
