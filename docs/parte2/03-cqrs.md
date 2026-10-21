@@ -64,7 +64,7 @@ Tabela `acompanhamento_compra`, na mesma instância de Compras (um banco adicion
 | `produto`, `quantidade`, `unidade` | Snapshot da compra | `quantidade` decimal + unidade explícita |
 | `status` | Compra | `PENDENTE`, `CONFIRMADA`, `RECEBIDA`, `CANCELADA` |
 | `etapa_saga` | `saga_compra` | `EM_ANDAMENTO`, `COMPENSANDO`, `CONCLUIDA`, `CANCELADA` |
-| `entrega_status`, `entrega_data` | Resposta de `EntregaAgendada` / `EntregaRecebida` | — |
+| `entrega_status`, `entrega_data` | Gravados em Compras ao receber `EntregaAgendada` / `EntregaRecebida`; chegam à projeção por `CompraConfirmada` / `CompraRecebida` | — |
 | `pagamento_status` | `liberacao_pagamento` | `AGUARDANDO_RECEBIMENTO` / `LIBERADO` |
 | `updated_at` | Projetor | Momento da aplicação |
 | `versao` | Compra / SAGA | Controle de ordem |
@@ -98,13 +98,14 @@ Eventos que alimentam a projeção (nomes canônicos):
 |---|---|
 | `CompraCriada` | linha inicial com `PENDENTE` e `EM_ANDAMENTO` |
 | `SagaProgrediu` | `etapa_saga` |
-| `CompraConfirmada` | `status = CONFIRMADA` |
+| `CompraConfirmada` | `status = CONFIRMADA`, `entrega_status = AGENDADA`, `entrega_data` |
 | `CompraCancelada` | `status = CANCELADA` |
-| `EntregaAgendada` | `entrega_status`, `entrega_data` |
-| `EntregaRecebida` | `status = RECEBIDA`, `entrega_status = RECEBIDA` |
+| `CompraRecebida` | `status = RECEBIDA`, `entrega_status = RECEBIDA` |
 | `LiberacaoPagamentoRegistrada` | `pagamento_status = LIBERADO` |
 
 O projetor é um consumidor comum: grava na inbox e faz o *upsert* na mesma transação. A regra de ordem é **por agregado**: aplica apenas se `evento.aggregate_version > linha.versao`, o que impede uma mensagem antiga de regredir o estado.
+
+A projeção consome **apenas eventos de Compras**. Assim, todos têm a Compra como agregado e a comparação de versão é válida. Eventos de Entregas (`EntregaAgendada`, `EntregaRecebida`) têm a Entrega como agregado, com contador próprio, e não poderiam ser ordenados contra a versão da linha. Seus dados entram primeiro no modelo de escrita de Compras e chegam à projeção por `CompraConfirmada` e `CompraRecebida`.
 
 ## 5. Defasagem aceitável
 
