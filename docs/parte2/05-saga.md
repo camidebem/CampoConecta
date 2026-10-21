@@ -143,3 +143,61 @@ stateDiagram-v2
 - São **idempotentes**: só devolvem saldo se a reserva estiver `ATIVA`; repetidas, respondem com o mesmo resultado.
 - **Não podem ser rejeitadas por regra de negócio**: liberar uma reserva existente sempre é permitido. Se a reserva não existir (o comando original nunca chegou), a compensação registra a operação como cancelada e responde com sucesso.
 - Executam em **ordem inversa** aos passos confirmados, usando `passos_concluidos`.
+
+## 7. Sequência de sucesso
+
+O diagrama parte da homologação feita pelo gestor no portal e acompanha **uma** das N SAGAs criadas. As demais seguem o mesmo fluxo, em paralelo e de forma independente.
+
+Para legibilidade, "outbox → broker" representa a linha gravada no outbox na transação local e publicada depois pelo relay no RabbitMQ; cada consumidor grava a mensagem na inbox na mesma transação de seus efeitos (ver [`02-dados-outbox.md`](./02-dados-outbox.md)).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor G as Gestor
+    participant GW as API Gateway
+    participant BP as BFF prefeitura
+    participant C as Compras (orquestrador)
+    participant MQ as RabbitMQ
+    participant E as Editais
+    participant O as Ofertas
+    participant L as Entregas
+
+    G->>GW: POST /prefeitura/api/v1/planos-alocacao/{id}/homologacoes<br/>Idempotency-Key
+    GW->>GW: auth_request (JWT válido, papel gestor)
+    GW->>BP: encaminha com claims e X-Correlation-Id
+    BP->>C: POST /api/v1/planos-alocacao/{id}/homologacoes
+    Note over C: Transação local:<br/>plano HOMOLOGADO<br/>N Compras PENDENTE<br/>N SAGAs EM_ANDAMENTO<br/>outbox: N × AlocarDemanda + N × CompraCriada
+    C-->>BP: 202 Accepted (link do plano)
+    BP-->>GW: 202 Accepted
+    GW-->>G: 202 Accepted
+
+    Note over C,L: A partir daqui, a SAGA de uma compra
+    C->>MQ: AlocarDemanda (outbox → broker)
+    MQ->>E: AlocarDemanda
+    Note over E: Transação local:<br/>inbox + UPDATE condicional do saldo<br/>AlocacaoDemanda ATIVA<br/>outbox: DemandaAlocada
+    E->>MQ: DemandaAlocada
+    MQ->>C: DemandaAlocada
+    Note over C: Transação local:<br/>inbox + passo DEMANDA concluído<br/>etapa RESERVAR_OFERTA<br/>outbox: ReservarOferta + SagaProgrediu
+
+    C->>MQ: ReservarOferta
+    MQ->>O: ReservarOferta
+    Note over O: Transação local:<br/>inbox + UPDATE condicional da quantidade<br/>ReservaOferta ATIVA<br/>outbox: OfertaReservada
+    O->>MQ: OfertaReservada
+    MQ->>C: OfertaReservada
+    Note over C: Transação local:<br/>inbox + passo OFERTA concluído<br/>etapa AGENDAR_ENTREGA<br/>outbox: AgendarEntrega + SagaProgrediu
+
+    C->>MQ: AgendarEntrega
+    MQ->>L: AgendarEntrega
+    Note over L: Transação local:<br/>inbox + reserva de capacidade<br/>Agendamento AGENDADO<br/>outbox: EntregaAgendada
+    L->>MQ: EntregaAgendada
+    MQ->>C: EntregaAgendada
+    Note over C: Transação local:<br/>inbox + Compra CONFIRMADA<br/>SAGA CONCLUIDA<br/>outbox: CompraConfirmada
+    C->>MQ: CompraConfirmada (alimenta a projeção AcompanhamentoCompra)
+```
+
+**Pontos de leitura do diagrama:**
+
+- A resposta HTTP ao gestor é `202` (mensagens 5 a 7): a homologação só **inicia** as SAGAs. O progresso é consultado depois em `GET /planos-alocacao/{id}` ou no acompanhamento de cada compra.
+- Nenhuma transação atravessa serviços: cada `Note` é uma transação local em um único banco.
+- Todo efeito local e a mensagem seguinte são gravados juntos (entidade + outbox), o que elimina o dual write.
+- Os eventos `CompraCriada`, `SagaProgrediu` e `CompraConfirmada` atualizam a projeção de leitura `AcompanhamentoCompra` (ver [`03-cqrs.md`](./03-cqrs.md)); o BFF mostra a compra como `PENDENTE` até a confirmação chegar.
