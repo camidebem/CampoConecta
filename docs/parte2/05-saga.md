@@ -335,3 +335,53 @@ Enquanto a compensação está pendente, o recurso continua reservado: o saldo d
 | Sucesso tardio durante compensação | Orquestrador compensa também esse passo | Nenhum efeito órfão |
 | Reinício | Estado persistido + outbox + reentrega do broker | Retomada do ponto em que parou |
 | Compensação indisponível | `COMPENSANDO` com repetição, pendência e DLQ | Compra não é cancelada com efeito pendente |
+
+## 10. Recebimento e liberação de pagamento
+
+O recebimento acontece dias ou semanas depois da confirmação, quando o produtor entrega na escola. Por isso **não faz parte da SAGA**: a SAGA termina em `CONFIRMADA`, e o recebimento é um fluxo próprio, disparado por um fato externo (a escola confirmou que recebeu).
+
+O fluxo mantém a visão original do projeto: *a entrega é confirmada na escola e, após a confirmação, o pagamento ao produtor é liberado*.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor S as Escola
+    participant GW as API Gateway
+    participant BP as BFF prefeitura
+    participant L as Entregas
+    participant MQ as RabbitMQ
+    participant C as Compras
+
+    S->>GW: POST /prefeitura/api/v1/entregas/{id}/recebimentos<br/>Idempotency-Key
+    GW->>GW: auth_request (JWT válido, papel escola)
+    GW->>BP: encaminha com claims
+    BP->>L: POST /api/v1/entregas/{id}/recebimentos
+    Note over L: Valida vínculo: escolaId da entrega = instituicaoId do token<br/>Valida estado: entrega AGENDADA
+    Note over L: Transação local:<br/>ConfirmacaoRecebimento registrada<br/>Entrega RECEBIDA<br/>outbox: EntregaRecebida
+    L-->>BP: 201 Created
+    BP-->>GW: 201 Created
+    GW-->>S: 201 Created
+
+    L->>MQ: EntregaRecebida (outbox → broker)
+    MQ->>C: EntregaRecebida
+    Note over C: Transação local:<br/>inbox + Compra RECEBIDA<br/>INSERT liberacao_pagamento (UNIQUE compra_id)<br/>outbox: LiberacaoPagamentoRegistrada
+    C->>MQ: LiberacaoPagamentoRegistrada (alimenta a projeção AcompanhamentoCompra)
+```
+
+**Regras:**
+
+| Regra | Como é garantida |
+|---|---|
+| Só a escola de destino confirma o recebimento | Entregas compara o `escolaId` da entrega com a claim `instituicaoId` do token; gestor e produtor recebem `403` |
+| Só entrega agendada pode ser recebida | Entregas aceita o recebimento apenas no estado `AGENDADA`; outro estado responde `409` |
+| Confirmação repetida pela escola não gera dois recebimentos | `Idempotency-Key` no `POST`: mesma chave devolve o resultado original |
+| Pagamento liberado uma única vez | Inbox em Compras e `UNIQUE (compra_id)` em `liberacao_pagamento`: reprocessar `EntregaRecebida` não cria segunda liberação |
+| Compra e liberação nunca divergem | `Compra RECEBIDA` e a linha de `liberacao_pagamento` são gravadas na **mesma transação** local |
+| Entregas não conhece regra de pagamento | Entregas apenas publica o fato `EntregaRecebida`; quem decide liberar é Compras, dona da compra e do pagamento |
+
+**Casos de borda:**
+
+- **Compra cancelada:** não pode receber `EntregaRecebida`, porque a compensação `CancelarAgendamento` deixa a entrega fora do estado `AGENDADA`, e Entregas recusa o recebimento.
+- **`EntregaRecebida` antes de `EntregaAgendada` chegar a Compras** (resposta da SAGA atrasada no broker): Compras não aplica o recebimento a uma compra ainda `PENDENTE`; a mensagem volta para a fila com atraso e é reprocessada depois que a SAGA concluir.
+
+**Liberação de pagamento** é um estado de negócio registrado em Compras (valor, moeda e data), não uma transferência bancária. Uma integração financeira futura pode consumir `LiberacaoPagamentoRegistrada` sem alterar este fluxo.
