@@ -1,6 +1,8 @@
 # Gateway, BFFs e HATEOAS
 
-Configuração proposta de acesso às APIs do CampoConecta. Os componentes ainda não estão implantados.
+Este documento descreve o gateway, a apresentação por cliente e os links de navegação e ação. As decisões de acesso estão no [ADR 0007](../adr/0007-acesso-gateway-bffs.md); regras de integração propostas estão no [ADR 0006](../adr/0006-conciliacao-contratos-rest.md).
+
+Tudo aqui é projeto documental: não há BFF, verificador JWT ou serviços implementados, nem gateway implantado. Os arquivos NGINX são referência de configuração. Cada serviço mantém seus próprios dados, regras e transações.
 
 ## 1. Entrada única e rotas
 
@@ -69,7 +71,7 @@ Parâmetros propostos: 10 req/s por IP, burst 20; 5 req/s por identidade, burst 
 
 O exemplo permite CORS apenas para `https://portal.campoconecta.example`, com Bearer explícito, sem cookies de sessão. Aplicativo nativo não depende de CORS. Preflight de prefixos conhecidos retorna `204` sem autenticação e sem chamar domínio; a requisição efetiva continua exigindo token. A origem ilustrativa deve ser substituída na implantação. CORS não autoriza usuário.
 
-Certificados em `certs/tls.crt` e `certs/tls.key`, DNS dos upstreams, diretórios `logs/` e `temp/` e módulos precisam existir no ambiente futuro. Nenhum certificado/chave privada foi incluído no repositório. Antes de iniciar, validar com `nginx -t -p <prefixo-absoluto>/ -c nginx.conf`. O teste de sintaxe não comprova integração com os serviços.
+Certificados em `certs/tls.crt` e `certs/tls.key`, DNS dos upstreams, diretórios `logs/` e `temp/` e módulos precisam existir no ambiente futuro. Nenhum certificado/chave privada foi incluído no repositório. Antes de iniciar, validar com `nginx -t -p <prefixo-absoluto>/ -c nginx.conf`. A [evidência de validação](openapi/VALIDACAO.md) distingue sintaxe testada de integração ainda inexistente.
 
 ## 3. Por que dois BFFs
 
@@ -202,6 +204,25 @@ Valem os [padrões REST](openapi/README.md): erro com quatro campos, UUID, valor
 O BFF não memoriza uma resposta de escrita antes de o domínio concluir a transação. Depois de uma perda de resposta, o reenvio da mesma chave recupera o resultado original; o cliente usa GET para consultar o estado atual. Uma resposta idempotente antiga não é reapresentada como estado novo. `Location` é reescrita junto do resultado.
 
 Os BFFs usam seus prefixos `/api/v1` e versões documentais próprias. Compras mudou `info.version` para 1.1.0 pela representação HATEOAS prevista no projeto, sem alterar nome de estado ou caminho. Clientes que validam respostas com schema fechado precisam atualizar seu contrato ao receber `_links`; isso exige atualizar os consumidores afetados.
+
+## 7. Cobertura e alternativas
+
+| Tema | Evidência |
+|---|---|
+| Gateway | Rotas, verificação JWT delegada, duas fases de limite, headers/TLS/CORS, configurações e alternativas |
+| BFFs | Dois OpenAPI externos, dashboard/inicio, operações específicas, ordenação/página versus cursor e sincronização, formatos diferentes |
+| HATEOAS | Responsabilidades Compras/BFF, schemas `_links`, matriz estado/papel/vínculo e exemplos condicionais |
+| Validação | [Validação dos seis contratos](openapi/VALIDACAO.md) e [ADR 0007](../adr/0007-acesso-gateway-bffs.md) |
+
+| Alternativa | Avaliação |
+|---|---|
+| Gateway agrega os quatro serviços | Mistura entrada/autenticação com apresentação e necessidades dos clientes |
+| Um BFF genérico | Obriga celular a receber payload/consulta próprios do portal ou cria condicionais por cliente no mesmo contrato |
+| Clientes acessam domínio diretamente | Expõe serviços internos, aumenta chamadas móveis e duplica composição/autenticação |
+| Envoy com `jwt_authn` | Alternativa com validação JWT integrada; configuração diferente da referência NGINX já escolhida |
+| Kong ou Traefik/ForwardAuth | Alternativas viáveis, mas acrescentam outro produto ou convenções sem necessidade identificada nesta etapa |
+| `limit_req` usando claim antes de `auth_request` | Não garante chave autenticada na fase em que o limite é aplicado; escolhido segundo salto privado |
+| Inventar cursor incremental no serviço | Acrescentaria mecanismos de consulta e persistência aos serviços; escolhido cache de observação no BFF, com limites explícitos |
 
 ## 8. Referências técnicas
 

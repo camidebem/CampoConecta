@@ -1,13 +1,21 @@
 # Contratos REST
 
-Contratos das APIs internas do CampoConecta, com recursos, parâmetros e schemas para integração. Os serviços ainda não estão implantados.
+Os quatro contratos de domínio descrevem APIs internas; os dois contratos de BFF descrevem o acesso externo pelo gateway. Não há implementação ou implantação. A [documentação de gateway, BFFs e HATEOAS](../04-gateway-bffs.md) complementa os schemas; o [relatório de validação](VALIDACAO.md) registra verificações e limites.
 
-| Serviço | Contrato |
+| Contrato OpenAPI 3.1.0 | Superfície |
 |---|---|
-| Editais | [OpenAPI](editais.openapi.json) |
-| Ofertas | [OpenAPI](ofertas.openapi.json) |
-| Compras | [OpenAPI](compras.openapi.json) |
-| Entregas | [OpenAPI](entregas.openapi.json) |
+| [Editais](editais.openapi.json) | Prefeitura, escolas, rascunho, consulta, edição, publicação e encerramento de edital |
+| [Ofertas](ofertas.openapi.json) | Produtor, ofertas, saldo livre, inativação e consulta de reserva |
+| [Compras](compras.openapi.json) | Propostas, retiradas, sugestão/ajuste/homologação de planos, compras, acompanhamento e liberação de pagamento |
+| [Entregas](entregas.openapi.json) | Capacidade logística, consulta de entrega e confirmação de recebimento |
+| [BFF prefeitura](bff-prefeitura.openapi.json) | Portal de gestor/escola, dashboard, página e ordenação, respostas aninhadas e ações autorizadas |
+| [BFF produtor](bff-produtor.openapi.json) | Aplicativo, inicio, cursor, sincronização observada, ETag e compra achatada |
+
+Cada arquivo é autocontido, com parâmetros, schemas, exemplos de corpos, respostas de erro e autenticação. JSON é um formato aceito por OpenAPI; não depende de resolver schemas em outro repositório. Pode ser aberto em um visualizador OpenAPI local.
+
+## 1. Escopo e decisões
+
+As APIs de domínio mantêm a autoridade sobre dados e operações; os BFFs adaptam as respostas para cada cliente. O [ADR 0006](../../adr/0006-conciliacao-contratos-rest.md) registra regras de integração propostas. O [ADR 0007](../../adr/0007-acesso-gateway-bffs.md) descreve o acesso pelo gateway e pelos BFFs.
 
 ## 2. Convenções de dados
 
@@ -58,6 +66,7 @@ Mudanças que preservam os consumidores permanecem em v1, como novas operações
 
 Uma v2 exige contrato paralelo, relação dos consumidores afetados, orientação de migração e prazo acordado para retirada da v1. O contrato antigo permanece documentado durante a transição. Nenhuma data de desativação é inventada nesta entrega.
 
+`versao` dentro do recurso é controle de concorrência, sem relação com v1 ou `info.version`. Ajustes/transições recebem a versão atual, e uma transação local só aplica a mudança se ela coincidir, incrementando o valor. Conflito usa `409`. Não se usa `If-Match` nessas edições, evitando atribuir `409` à semântica HTTP de precondição falha (`412`). ETag de sincronização móvel é assunto da BFFs.
 
 ## 5. Paginação e filtros
 
@@ -67,6 +76,7 @@ Ordenação fixa: `id` ascendente, estável dentro de uma consulta. Coleções s
 
 Autorização restringe o conjunto **antes** dos filtros, contagem e paginação. Um filtro não amplia o escopo: identificador de outra instituição/produtor deve ser rejeitado com `403` quando expressa acesso fora do vínculo; ausência de correspondência dentro do escopo retorna lista vazia. `total` conta apenas os recursos autorizados que atendem aos filtros.
 
+O portal adapta a ordenação por campos enumerados e mantém página de até 50 itens. O BFF produtor usa cursor opaco de até dez registros, com `removidos`, `proximoCursor` opcional e `sincronizadoEm`. `atualizadoDesde` significa observação pelo BFF, não timestamp de escrita do domínio. O mecanismo está detalhado na [sincronização móvel](../04-gateway-bffs.md#32-sincronização-móvel-sem-alterar-as-apis-de-domínio); não acrescenta cursor ou novo banco aos serviços.
 
 ## 6. Autenticação e autorização por recurso
 
@@ -108,6 +118,29 @@ Todas as respostas de erro usam o schema `Erro` com `code`, `message`, `details`
 
 Códigos de máquina previstos além dos exemplos genéricos: `VERSAO_DESATUALIZADA`, `ESTADO_INCOMPATIVEL`, `IDEMPOTENCY_KEY_REUTILIZADA`, `OPERACAO_EM_ANDAMENTO`, `VINCULO_INVALIDO`, `LIBERACAO_NAO_REGISTRADA` e `PROJECAO_INDISPONIVEL`. O cliente decide por status/código, não por texto da mensagem. `503` sem resposta final conhecida exige repetir com a mesma chave para recuperar o resultado, não presumir cancelamento.
 
+## 9. Cobertura e validação
+
+| Tema | Evidência |
+|---|---|
+| Serviços | Quatro arquivos com as operações de cadastro, consulta e ciclo de vida; nenhuma criação pública de compra/reserva/agendamento |
+| Schemas e convenções | Schemas de entrada/saída, exemplos, parâmetros, paginação, erros, JWT, papéis/vínculos e Idempotency-Key por operação; regras relacionais no texto das operações |
+| Semântica HTTP | Seções 3 e 4: recursos, verbos, códigos, PATCH e evolução de versão |
+| Gateway | Documento `04-gateway-bffs.md` e configurações em `gateway/nginx/`: rotas, verificação delegada, limites, TLS, CORS e responsabilidades |
+| BFFs | Dois contratos de BFF com schemas, agregações e respostas diferentes, página versus cursor, ETag e sincronização |
+| HATEOAS | `_links` em Compras e BFFs, matriz de papel/estado/vínculo e exemplos de escola, gestor e produtor |
+| Validação | Relatório `VALIDACAO.md`, verificação estática reproduzível e ADR 0007 de acesso/BFFs |
+
+O [relatório de validação](VALIDACAO.md) consolida os seis contratos, a cobertura de operações REST, exemplos, origens, links e o teste de sintaxe NGINX. Isso verifica o projeto estático, não a implementação futura.
+
+Para validar estrutura e referências com Node.js/npm:
+
+```powershell
+npm exec --yes --package=@redocly/cli@2.8.0 -- redocly lint docs/parte2/openapi/editais.openapi.json docs/parte2/openapi/ofertas.openapi.json docs/parte2/openapi/compras.openapi.json docs/parte2/openapi/entregas.openapi.json docs/parte2/openapi/bff-prefeitura.openapi.json docs/parte2/openapi/bff-produtor.openapi.json --extends minimal
+node docs/parte2/openapi/verificar-contratos.cjs
+```
+
+O comando baixa a ferramenta no cache npm e não adiciona dependências ao aplicativo. Validação estrutural não comprova implementação, autorização em execução, comportamento transacional ou consistência de integração. Esses pontos precisam de revisão e, na fase de implementação, testes de integração.
+
 ## 10. Referências técnicas
 
 - [OpenAPI 3.1.0](https://spec.openapis.org/oas/v3.1.0.html): estrutura dos contratos, schemas, parâmetros, segurança e exemplos.
@@ -115,4 +148,3 @@ Códigos de máquina previstos além dos exemplos genéricos: `VERSAO_DESATUALIZ
 - [RFC 5789 — PATCH](https://www.rfc-editor.org/rfc/rfc5789.html): alteração parcial de recursos.
 
 As regras de negócio, permissões e escolhas concretas de paginação/idempotência são decisões propostas do CampoConecta, e não requisitos impostos por essas referências.
-
