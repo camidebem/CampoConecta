@@ -3,7 +3,7 @@
 - **Status:** proposto.
 - **Data:** 2026-10-20.
 - **Componentes afetados:** Editais, Ofertas, Compras, Entregas e os dois BFFs.
-- **Relacionados:** [contratos REST](../parte2/openapi/README.md).
+- **Relacionados:** [contratos REST](../parte2/openapi/README.md) e [gateway e BFFs](../parte2/04-gateway-bffs.md).
 
 ## Contexto
 
