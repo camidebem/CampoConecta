@@ -120,7 +120,7 @@ stateDiagram-v2
 | `EM_ANDAMENTO` | `AGENDAR_ENTREGA` | `AgendamentoRejeitado` | Envia `LiberarOferta` | `COMPENSANDO` | `PENDENTE` |
 | `COMPENSANDO` | `LIBERAR_OFERTA` | `OfertaLiberada` | Envia `LiberarDemanda` | `COMPENSANDO` | `PENDENTE` |
 | `COMPENSANDO` | `LIBERAR_DEMANDA` | `DemandaLiberada` | Encerra; publica `CompraCancelada` | `CANCELADA` | `CANCELADA` |
-| qualquer | qualquer | timeout do passo | Reenvia o mesmo comando com o mesmo `operationId` (seção 8) | inalterado | inalterado |
+| qualquer | qualquer | timeout do passo | Reenvia o mesmo comando com o mesmo `operationId` (seção 9) | inalterado | inalterado |
 | `CONCLUIDA` ou `CANCELADA` | — | resposta duplicada | Descartada pela inbox | inalterado | inalterado |
 
 ## 6. Passos e compensações
@@ -133,7 +133,7 @@ stateDiagram-v2
 | 3 | Entregas | `AgendarEntrega` | Reserva capacidade na janela; cria `Agendamento` `AGENDADO` | `EntregaAgendada` | `AgendamentoRejeitado` | `CancelarAgendamento` | `AgendamentoCancelado` |
 | 4 | Compras | (interno) | Compra `CONFIRMADA`, SAGA `CONCLUIDA`, `CompraConfirmada` no outbox | — | — | Sem compensação: é o último passo. Cancelar depois disso é outro processo de negócio | — |
 
-**Por que o passo 3 tem compensação, se é o último participante:** `CancelarAgendamento` não é usado no caminho de rejeição do próprio agendamento, mas é necessário quando o resultado do agendamento é desconhecido (timeout) e a SAGA acaba compensando, ou quando uma resposta `EntregaAgendada` chega depois de a SAGA ter decidido cancelar (seção 8).
+**Por que o passo 3 tem compensação, se é o último participante:** `CancelarAgendamento` não é usado no caminho de rejeição do próprio agendamento, mas é necessário quando o resultado do agendamento é desconhecido (timeout) e a SAGA acaba compensando, ou quando uma resposta `EntregaAgendada` chega depois de a SAGA ter decidido cancelar (seção 9).
 
 **Por que esta ordem:** Editais primeiro, porque o saldo da demanda é o recurso mais disputado (várias propostas para o mesmo item) e sua rejeição não deixa nada a desfazer. Ofertas em seguida, porque só faz sentido reservar produção para demanda garantida. Entregas por último, porque o agendamento depende de quantidade e produtor já confirmados.
 
@@ -201,3 +201,56 @@ sequenceDiagram
 - Nenhuma transação atravessa serviços: cada `Note` é uma transação local em um único banco.
 - Todo efeito local e a mensagem seguinte são gravados juntos (entidade + outbox), o que elimina o dual write.
 - Os eventos `CompraCriada`, `SagaProgrediu` e `CompraConfirmada` atualizam a projeção de leitura `AcompanhamentoCompra` (ver [`03-cqrs.md`](./03-cqrs.md)); o BFF mostra a compra como `PENDENTE` até a confirmação chegar.
+
+## 8. Sequência de falha: agendamento rejeitado
+
+Cenário: demanda e oferta já foram reservadas, mas Entregas não tem capacidade logística na janela de entrega da escola. É o cenário mais completo, porque exige desfazer **dois** efeitos já confirmados, em ordem inversa.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Compras (orquestrador)
+    participant MQ as RabbitMQ
+    participant E as Editais
+    participant O as Ofertas
+    participant L as Entregas
+
+    Note over C,O: Passos 1 e 2 concluídos como na sequência de sucesso:<br/>AlocacaoDemanda ATIVA e ReservaOferta ATIVA
+    C->>MQ: AgendarEntrega
+    MQ->>L: AgendarEntrega
+    Note over L: Transação local:<br/>inbox + capacidade insuficiente na janela<br/>operação registrada como REJEITADA<br/>outbox: AgendamentoRejeitado (motivo)
+    L->>MQ: AgendamentoRejeitado
+    MQ->>C: AgendamentoRejeitado
+    Note over C: Transação local:<br/>inbox + SAGA COMPENSANDO<br/>motivo_falha = CAPACIDADE_INDISPONIVEL<br/>Compra continua PENDENTE<br/>outbox: LiberarOferta + SagaProgrediu
+
+    C->>MQ: LiberarOferta
+    MQ->>O: LiberarOferta
+    Note over O: Transação local:<br/>inbox + devolve quantidade à oferta<br/>ReservaOferta LIBERADA<br/>outbox: OfertaLiberada
+    O->>MQ: OfertaLiberada
+    MQ->>C: OfertaLiberada
+    Note over C: Transação local:<br/>inbox + compensação OFERTA concluída<br/>outbox: LiberarDemanda + SagaProgrediu
+
+    C->>MQ: LiberarDemanda
+    MQ->>E: LiberarDemanda
+    Note over E: Transação local:<br/>inbox + devolve saldo ao item do edital<br/>AlocacaoDemanda LIBERADA<br/>outbox: DemandaLiberada
+    E->>MQ: DemandaLiberada
+    MQ->>C: DemandaLiberada
+    Note over C: Transação local:<br/>inbox + todas as compensações confirmadas<br/>SAGA CANCELADA, Compra CANCELADA<br/>outbox: CompraCancelada
+    C->>MQ: CompraCancelada (alimenta a projeção AcompanhamentoCompra)
+```
+
+**Pontos de leitura do diagrama:**
+
+- Não há `CancelarAgendamento`: a rejeição foi registrada por Entregas sem criar agendamento, então não há efeito a desfazer nesse serviço.
+- A Compra só vira `CANCELADA` na última transação, **depois** de `DemandaLiberada`. Enquanto houver reserva conhecida não desfeita, ela permanece `PENDENTE` e a SAGA em `COMPENSANDO`.
+- O saldo devolvido ao item do edital fica disponível para outras compras do mesmo plano ou para um novo plano de alocação.
+
+### 8.1 Outras rejeições de negócio
+
+| Falha | Momento | Efeitos já confirmados | Compensações | Resultado |
+|---|---|---|---|---|
+| Demanda indisponível | `AlocacaoDemandaRejeitada` no passo 1 | Nenhum | Nenhuma | SAGA e Compra `CANCELADA` imediatamente |
+| Oferta indisponível | `ReservaOfertaRejeitada` no passo 2 | Demanda | `LiberarDemanda` → `DemandaLiberada` | SAGA e Compra `CANCELADA` após a liberação |
+| Agendamento rejeitado | `AgendamentoRejeitado` no passo 3 | Demanda e oferta | `LiberarOferta` → `OfertaLiberada`, depois `LiberarDemanda` → `DemandaLiberada` | SAGA e Compra `CANCELADA` após as duas liberações (diagrama acima) |
+
+Os dois primeiros casos seguem o mesmo padrão do diagrama, com menos passos.
