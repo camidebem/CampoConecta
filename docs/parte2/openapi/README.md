@@ -26,6 +26,39 @@ Prazos precisam ser futuros quando exigido pela operação; janelas exigem iníc
 
 Exemplos são ilustrativos, com UUIDs válidos, e não cadastros reais ou comprovação de integração. Datas e dados documentais não dispensam validações de negócio no sistema futuro.
 
+## 3. Recursos, métodos e códigos HTTP — Semântica HTTP
+
+| Método/código | Uso e justificativa no projeto |
+|---|---|
+| `GET` / `200` | Consulta sem mudar estado. Inclui recursos individuais, coleções, resultado por item do plano e projeção de acompanhamento |
+| `POST` / `201` | Criação local concluída de prefeitura, escola, produtor, oferta, edital, proposta, plano, capacidade ou confirmação de recebimento. `Location` identifica o recurso ou a coleção subordinada da confirmação |
+| `POST` / `200` | Publicação, encerramento e retirada são transições concluídas localmente. Retornam o recurso atualizado; não criam registro HTTP independente com outro identificador |
+| `POST` / `202` | Homologação aceita e persistida: compras, SAGAs e outbox são criadas localmente, mas reservas/agendamento ainda são assíncronos. Corpo e `Location` apontam ao plano para consultar cada compra |
+| `PATCH` / `200` | Ajuste parcial nos campos explicitamente aceitos pelo schema, com versão. O servidor retorna o recurso atualizado; omissões preservam valores |
+| `400` | Formato, parâmetro, cabeçalho ou conteúdo inválido, incluindo dados não suportados pelo contrato |
+| `401` | Token ausente/inválido/expirado; `WWW-Authenticate: Bearer` |
+| `403` | Identidade autenticada sem papel ou vínculo para a operação |
+| `404` | UUID de recurso inexistente; liberação ainda não registrada tem código específico `LIBERACAO_NAO_REGISTRADA` |
+| `409` | Estado incompatível, saldo/regra de negócio em conflito, duplicidade, versão obsoleta, chave idempotente com outro conteúdo ou processamento da mesma chave ainda em curso |
+| `503` | Dependência indispensável indisponível; `Retry-After` em segundos orienta nova tentativa. Não garante ausência de efeito se houve perda da resposta |
+
+As transições são recursos subordinados (`publicacoes`, `encerramentos`, `retiradas`, `homologacoes`, `recebimentos`), preservando os nomes do projeto e delimitando regras de autorização. Sua semântica de negócio fica no serviço dono. O cliente não envia um novo `status` arbitrário por PATCH.
+
+Não há `POST /compras`: a única criação de compras é a homologação de plano. Reservar/liberar demanda, reservar/liberar oferta e agendar/cancelar entrega não são ações HTTP do cliente. Cancelamento de compra já confirmada é outro processo, ainda fora desta superfície. A liberação de pagamento não é transferência bancária e não tem comando público de liberação.
+
+`PUT` não foi incluído porque as edições são parciais; `DELETE` não foi incluído porque registros emitidos, reservas e compromissos precisam de rastreabilidade. Oferta/produtor são inativados com PATCH; proposta é retirada pela transição definida. Não há requisito de exclusão física nesta etapa.
+
+PATCH usa `application/json` com schema específico por operação, não JSON Patch nem JSON Merge Patch. Arrays não têm comportamento genérico: ajustes de edital referenciam itens existentes sem incluir/remover; ajustes de plano informam por item uma nova quantidade **ou** `excluir: true`. IDs repetidos são inválidos. Edição em estado indevido retorna `409`; corpo sem mudança retorna `400`.
+
+## 4. Versionamento
+
+`openapi: 3.1.0` indica a linguagem do contrato; `info.version: 1.0.0` identifica esta edição documental; `/api/v1` é a versão pública da interface do serviço. São conceitos distintos.
+
+Mudanças que preservam os consumidores permanecem em v1, como novas operações ou campos opcionais de resposta para clientes que ignorem campos desconhecidos. Remover/renomear campo, mudar seu tipo ou significado, exigir campo antes opcional e alterar paginação ou autorização de forma incompatível exigem avaliar uma nova versão de caminho. Novos valores de enum podem quebrar clientes com enum fechado; não são considerados automaticamente compatíveis.
+
+Uma v2 exige contrato paralelo, relação dos consumidores afetados, orientação de migração e prazo acordado para retirada da v1. O contrato antigo permanece documentado durante a transição. Nenhuma data de desativação é inventada nesta entrega.
+
+
 ## 5. Paginação e filtros
 
 Todas as coleções dos quatro serviços de domínio usam `pagina` (padrão 1, mínimo 1) e `tamanho` (padrão 20, intervalo 1–50). Resposta: `items` e `paginacao {pagina, tamanho, total, totalPaginas}`. Página após a última retorna lista vazia com `200`; coleção vazia tem `total=0` e `totalPaginas=0`.
@@ -74,4 +107,12 @@ Todas as respostas de erro usam o schema `Erro` com `code`, `message`, `details`
 ```
 
 Códigos de máquina previstos além dos exemplos genéricos: `VERSAO_DESATUALIZADA`, `ESTADO_INCOMPATIVEL`, `IDEMPOTENCY_KEY_REUTILIZADA`, `OPERACAO_EM_ANDAMENTO`, `VINCULO_INVALIDO`, `LIBERACAO_NAO_REGISTRADA` e `PROJECAO_INDISPONIVEL`. O cliente decide por status/código, não por texto da mensagem. `503` sem resposta final conhecida exige repetir com a mesma chave para recuperar o resultado, não presumir cancelamento.
+
+## 10. Referências técnicas
+
+- [OpenAPI 3.1.0](https://spec.openapis.org/oas/v3.1.0.html): estrutura dos contratos, schemas, parâmetros, segurança e exemplos.
+- [RFC 9110 — HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110.html): métodos, códigos, Location, autenticação e precondições.
+- [RFC 5789 — PATCH](https://www.rfc-editor.org/rfc/rfc5789.html): alteração parcial de recursos.
+
+As regras de negócio, permissões e escolhas concretas de paginação/idempotência são decisões propostas do CampoConecta, e não requisitos impostos por essas referências.
 
