@@ -67,13 +67,20 @@
                   "type": "string",
                   "format": "uri-reference"
                 },
-                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo."
+                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo.",
+                "example": "/api/v1/prefeituras/00000001-0000-4000-8000-000000000001"
               }
             },
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Prefeitura"
+                },
+                "example": {
+                  "id": "00000001-0000-4000-8000-000000000001",
+                  "nome": "Prefeitura Exemplo",
+                  "cnpj": "12345678000190",
+                  "criadoEm": "2026-10-20T10:00:00-03:00"
                 }
               }
             }
@@ -101,6 +108,10 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PrefeituraCriacao"
+              },
+              "example": {
+                "nome": "Prefeitura Exemplo",
+                "cnpj": "12345678000190"
               }
             }
           }
@@ -143,6 +154,12 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Prefeitura"
+                },
+                "example": {
+                  "id": "00000001-0000-4000-8000-000000000001",
+                  "nome": "Prefeitura Exemplo",
+                  "cnpj": "12345678000190",
+                  "criadoEm": "2026-10-20T10:00:00-03:00"
                 }
               }
             }
@@ -201,13 +218,29 @@
                   "type": "string",
                   "format": "uri-reference"
                 },
-                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo."
+                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo.",
+                "example": "/api/v1/escolas/00000002-0000-4000-8000-000000000001"
               }
             },
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Escola"
+                },
+                "example": {
+                  "id": "00000002-0000-4000-8000-000000000001",
+                  "prefeituraId": "00000001-0000-4000-8000-000000000001",
+                  "nome": "Escola Exemplo",
+                  "endereco": {
+                    "logradouro": "Rua da Escola",
+                    "numero": "100",
+                    "complemento": "Bloco A",
+                    "bairro": "Centro",
+                    "municipio": "Lavras",
+                    "uf": "MG",
+                    "cep": "37200000"
+                  },
+                  "ativo": true
                 }
               }
             }
@@ -238,6 +271,19 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/EscolaCriacao"
+              },
+              "example": {
+                "prefeituraId": "00000001-0000-4000-8000-000000000001",
+                "nome": "Escola Exemplo",
+                "endereco": {
+                  "logradouro": "Rua da Escola",
+                  "numero": "100",
+                  "complemento": "Bloco A",
+                  "bairro": "Centro",
+                  "municipio": "Lavras",
+                  "uf": "MG",
+                  "cep": "37200000"
+                }
               }
             }
           }
@@ -273,7 +319,8 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "example": "00000001-0000-4000-8000-000000000001"
           },
           {
             "name": "ativo",
@@ -282,7 +329,8 @@
             "description": "Filtra situação da escola.",
             "schema": {
               "type": "boolean"
-            }
+            },
+            "example": true
           }
         ],
         "responses": {
@@ -301,6 +349,31 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ListarEscolasPagina"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000002-0000-4000-8000-000000000001",
+                      "prefeituraId": "00000001-0000-4000-8000-000000000001",
+                      "nome": "Escola Exemplo",
+                      "endereco": {
+                        "logradouro": "Rua da Escola",
+                        "numero": "100",
+                        "complemento": "Bloco A",
+                        "bairro": "Centro",
+                        "municipio": "Lavras",
+                        "uf": "MG",
+                        "cep": "37200000"
+                      },
+                      "ativo": true
+                    }
+                  ],
+                  "paginacao": {
+                    "pagina": 1,
+                    "tamanho": 20,
+                    "total": 1,
+                    "totalPaginas": 1
+                  }
                 }
               }
             }
@@ -357,6 +430,21 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Escola"
+                },
+                "example": {
+                  "id": "00000002-0000-4000-8000-000000000001",
+                  "prefeituraId": "00000001-0000-4000-8000-000000000001",
+                  "nome": "Escola Exemplo",
+                  "endereco": {
+                    "logradouro": "Rua da Escola",
+                    "numero": "100",
+                    "complemento": "Bloco A",
+                    "bairro": "Centro",
+                    "municipio": "Lavras",
+                    "uf": "MG",
+                    "cep": "37200000"
+                  },
+                  "ativo": true
                 }
               }
             }
@@ -415,13 +503,45 @@
                   "type": "string",
                   "format": "uri-reference"
                 },
-                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo."
+                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo.",
+                "example": "/api/v1/editais/00000003-0000-4000-8000-000000000001"
               }
             },
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Edital"
+                },
+                "example": {
+                  "id": "00000003-0000-4000-8000-000000000001",
+                  "prefeituraId": "00000001-0000-4000-8000-000000000001",
+                  "titulo": "Chamada pública de alimentos",
+                  "prazoEntrega": "2026-11-25T17:00:00-03:00",
+                  "criterios": [
+                    {
+                      "codigo": "ORDEM_ENVIO",
+                      "ordem": "ASC",
+                      "parametros": {}
+                    }
+                  ],
+                  "itens": [
+                    {
+                      "id": "00000004-0000-4000-8000-000000000001",
+                      "escolaId": "00000002-0000-4000-8000-000000000001",
+                      "produto": "Arroz",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "saldo": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "versao": 1
+                    }
+                  ],
+                  "status": "RASCUNHO",
+                  "versao": 1
                 }
               }
             }
@@ -452,6 +572,28 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/EditalCriacao"
+              },
+              "example": {
+                "prefeituraId": "00000001-0000-4000-8000-000000000001",
+                "titulo": "Chamada pública de alimentos",
+                "prazoEntrega": "2026-11-25T17:00:00-03:00",
+                "criterios": [
+                  {
+                    "codigo": "ORDEM_ENVIO",
+                    "ordem": "ASC",
+                    "parametros": {}
+                  }
+                ],
+                "itens": [
+                  {
+                    "escolaId": "00000002-0000-4000-8000-000000000001",
+                    "produto": "Arroz",
+                    "quantidade": {
+                      "valor": "100.00",
+                      "unidade": "kg"
+                    }
+                  }
+                ]
               }
             }
           }
@@ -492,7 +634,8 @@
                 "PUBLICADO",
                 "ENCERRADO"
               ]
-            }
+            },
+            "example": "PUBLICADO"
           },
           {
             "name": "prefeituraId",
@@ -502,7 +645,8 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "example": "00000001-0000-4000-8000-000000000001"
           },
           {
             "name": "produto",
@@ -514,7 +658,8 @@
               "minLength": 1,
               "maxLength": 200,
               "description": "Nome do produto."
-            }
+            },
+            "example": "Arroz"
           }
         ],
         "responses": {
@@ -533,6 +678,47 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ListarEditaisPagina"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000003-0000-4000-8000-000000000001",
+                      "prefeituraId": "00000001-0000-4000-8000-000000000001",
+                      "titulo": "Chamada pública de alimentos",
+                      "prazoEntrega": "2026-11-25T17:00:00-03:00",
+                      "criterios": [
+                        {
+                          "codigo": "ORDEM_ENVIO",
+                          "ordem": "ASC",
+                          "parametros": {}
+                        }
+                      ],
+                      "itens": [
+                        {
+                          "id": "00000004-0000-4000-8000-000000000001",
+                          "escolaId": "00000002-0000-4000-8000-000000000001",
+                          "produto": "Arroz",
+                          "quantidade": {
+                            "valor": "100.00",
+                            "unidade": "kg"
+                          },
+                          "saldo": {
+                            "valor": "100.00",
+                            "unidade": "kg"
+                          },
+                          "versao": 1
+                        }
+                      ],
+                      "status": "PUBLICADO",
+                      "versao": 1
+                    }
+                  ],
+                  "paginacao": {
+                    "pagina": 1,
+                    "tamanho": 20,
+                    "total": 1,
+                    "totalPaginas": 1
+                  }
                 }
               }
             }
@@ -590,6 +776,37 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Edital"
+                },
+                "example": {
+                  "id": "00000003-0000-4000-8000-000000000001",
+                  "prefeituraId": "00000001-0000-4000-8000-000000000001",
+                  "titulo": "Chamada pública de alimentos",
+                  "prazoEntrega": "2026-11-25T17:00:00-03:00",
+                  "criterios": [
+                    {
+                      "codigo": "ORDEM_ENVIO",
+                      "ordem": "ASC",
+                      "parametros": {}
+                    }
+                  ],
+                  "itens": [
+                    {
+                      "id": "00000004-0000-4000-8000-000000000001",
+                      "escolaId": "00000002-0000-4000-8000-000000000001",
+                      "produto": "Arroz",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "saldo": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "versao": 1
+                    }
+                  ],
+                  "status": "PUBLICADO",
+                  "versao": 1
                 }
               }
             }
@@ -649,6 +866,37 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Edital"
+                },
+                "example": {
+                  "id": "00000003-0000-4000-8000-000000000001",
+                  "prefeituraId": "00000001-0000-4000-8000-000000000001",
+                  "titulo": "Chamada pública revisada",
+                  "prazoEntrega": "2026-11-25T17:00:00-03:00",
+                  "criterios": [
+                    {
+                      "codigo": "ORDEM_ENVIO",
+                      "ordem": "ASC",
+                      "parametros": {}
+                    }
+                  ],
+                  "itens": [
+                    {
+                      "id": "00000004-0000-4000-8000-000000000001",
+                      "escolaId": "00000002-0000-4000-8000-000000000001",
+                      "produto": "Arroz",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "saldo": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "versao": 1
+                    }
+                  ],
+                  "status": "RASCUNHO",
+                  "versao": 2
                 }
               }
             }
@@ -679,6 +927,10 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/EditalAjuste"
+              },
+              "example": {
+                "versao": 1,
+                "titulo": "Chamada pública revisada"
               }
             }
           }
@@ -724,6 +976,37 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Edital"
+                },
+                "example": {
+                  "id": "00000003-0000-4000-8000-000000000001",
+                  "prefeituraId": "00000001-0000-4000-8000-000000000001",
+                  "titulo": "Chamada pública de alimentos",
+                  "prazoEntrega": "2026-11-25T17:00:00-03:00",
+                  "criterios": [
+                    {
+                      "codigo": "ORDEM_ENVIO",
+                      "ordem": "ASC",
+                      "parametros": {}
+                    }
+                  ],
+                  "itens": [
+                    {
+                      "id": "00000004-0000-4000-8000-000000000001",
+                      "escolaId": "00000002-0000-4000-8000-000000000001",
+                      "produto": "Arroz",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "saldo": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "versao": 1
+                    }
+                  ],
+                  "status": "PUBLICADO",
+                  "versao": 2
                 }
               }
             }
@@ -754,6 +1037,9 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/TransicaoEdital"
+              },
+              "example": {
+                "versao": 1
               }
             }
           }
@@ -799,6 +1085,37 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Edital"
+                },
+                "example": {
+                  "id": "00000003-0000-4000-8000-000000000001",
+                  "prefeituraId": "00000001-0000-4000-8000-000000000001",
+                  "titulo": "Chamada pública de alimentos",
+                  "prazoEntrega": "2026-11-25T17:00:00-03:00",
+                  "criterios": [
+                    {
+                      "codigo": "ORDEM_ENVIO",
+                      "ordem": "ASC",
+                      "parametros": {}
+                    }
+                  ],
+                  "itens": [
+                    {
+                      "id": "00000004-0000-4000-8000-000000000001",
+                      "escolaId": "00000002-0000-4000-8000-000000000001",
+                      "produto": "Arroz",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "saldo": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "versao": 1
+                    }
+                  ],
+                  "status": "ENCERRADO",
+                  "versao": 3
                 }
               }
             }
@@ -829,6 +1146,9 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/TransicaoEdital"
+              },
+              "example": {
+                "versao": 2
               }
             }
           }
@@ -1025,6 +1345,14 @@
           "nome",
           "cnpj",
           "criadoEm"
+        ],
+        "examples": [
+          {
+            "id": "00000001-0000-4000-8000-000000000001",
+            "nome": "Prefeitura Exemplo",
+            "cnpj": "12345678000190",
+            "criadoEm": "2026-10-20T10:00:00-03:00"
+          }
         ]
       },
       "Endereco": {
@@ -1077,6 +1405,17 @@
           "municipio",
           "uf",
           "cep"
+        ],
+        "examples": [
+          {
+            "logradouro": "Rua da Escola",
+            "numero": "100",
+            "complemento": "Bloco A",
+            "bairro": "Centro",
+            "municipio": "Lavras",
+            "uf": "MG",
+            "cep": "37200000"
+          }
         ]
       },
       "EscolaCriacao": {
@@ -1134,6 +1473,23 @@
           "nome",
           "endereco",
           "ativo"
+        ],
+        "examples": [
+          {
+            "id": "00000002-0000-4000-8000-000000000001",
+            "prefeituraId": "00000001-0000-4000-8000-000000000001",
+            "nome": "Escola Exemplo",
+            "endereco": {
+              "logradouro": "Rua da Escola",
+              "numero": "100",
+              "complemento": "Bloco A",
+              "bairro": "Centro",
+              "municipio": "Lavras",
+              "uf": "MG",
+              "cep": "37200000"
+            },
+            "ativo": true
+          }
         ]
       },
       "CriterioAlocacao": {
@@ -1167,6 +1523,13 @@
           "codigo",
           "ordem",
           "parametros"
+        ],
+        "examples": [
+          {
+            "codigo": "ORDEM_ENVIO",
+            "ordem": "ASC",
+            "parametros": {}
+          }
         ]
       },
       "ItemEditalCriacao": {
@@ -1228,6 +1591,22 @@
           "quantidade",
           "saldo",
           "versao"
+        ],
+        "examples": [
+          {
+            "id": "00000004-0000-4000-8000-000000000001",
+            "escolaId": "00000002-0000-4000-8000-000000000001",
+            "produto": "Arroz",
+            "quantidade": {
+              "valor": "100.00",
+              "unidade": "kg"
+            },
+            "saldo": {
+              "valor": "100.00",
+              "unidade": "kg"
+            },
+            "versao": 1
+          }
         ]
       },
       "EditalCriacao": {
@@ -1328,6 +1707,39 @@
           "itens",
           "status",
           "versao"
+        ],
+        "examples": [
+          {
+            "id": "00000003-0000-4000-8000-000000000001",
+            "prefeituraId": "00000001-0000-4000-8000-000000000001",
+            "titulo": "Chamada pública de alimentos",
+            "prazoEntrega": "2026-11-25T17:00:00-03:00",
+            "criterios": [
+              {
+                "codigo": "ORDEM_ENVIO",
+                "ordem": "ASC",
+                "parametros": {}
+              }
+            ],
+            "itens": [
+              {
+                "id": "00000004-0000-4000-8000-000000000001",
+                "escolaId": "00000002-0000-4000-8000-000000000001",
+                "produto": "Arroz",
+                "quantidade": {
+                  "valor": "100.00",
+                  "unidade": "kg"
+                },
+                "saldo": {
+                  "valor": "100.00",
+                  "unidade": "kg"
+                },
+                "versao": 1
+              }
+            ],
+            "status": "RASCUNHO",
+            "versao": 1
+          }
         ]
       },
       "ItemEditalAjuste": {
@@ -1457,7 +1869,8 @@
         "schema": {
           "type": "string",
           "format": "uuid"
-        }
+        },
+        "example": "00000001-0000-4000-8000-000000000001"
       },
       "CorrelationId": {
         "name": "X-Correlation-Id",
@@ -1467,7 +1880,8 @@
         "schema": {
           "type": "string",
           "format": "uuid"
-        }
+        },
+        "example": "00000099-0000-4000-8000-000000000001"
       },
       "IdempotencyKey": {
         "name": "Idempotency-Key",
@@ -1477,7 +1891,8 @@
         "schema": {
           "type": "string",
           "format": "uuid"
-        }
+        },
+        "example": "00000098-0000-4000-8000-000000000001"
       },
       "Pagina": {
         "name": "pagina",
@@ -1487,7 +1902,8 @@
           "type": "integer",
           "minimum": 1,
           "default": 1
-        }
+        },
+        "example": 1
       },
       "Tamanho": {
         "name": "tamanho",
@@ -1498,7 +1914,8 @@
           "minimum": 1,
           "maximum": 50,
           "default": 20
-        }
+        },
+        "example": 20
       }
     },
     "responses": {
@@ -1517,6 +1934,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "REQUISICAO_INVALIDA",
+              "message": "Corpo, parâmetro ou cabeçalho inválido, ausente ou não suportado.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -1535,6 +1958,7 @@
             "schema": {
               "type": "string"
             },
+            "example": "Bearer",
             "description": "Desafio de autenticação Bearer."
           }
         },
@@ -1542,6 +1966,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "NAO_AUTENTICADO",
+              "message": "Token ausente, expirado ou inválido.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -1561,6 +1991,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "ACESSO_NEGADO",
+              "message": "Papel ou vínculo não autoriza esta operação.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -1580,6 +2016,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "RECURSO_NAO_ENCONTRADO",
+              "message": "Recurso identificado não existe.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -1599,6 +2041,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "CONFLITO_DE_ESTADO",
+              "message": "Estado, versão, unicidade, vínculo de negócio ou chave idempotente em conflito.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -1618,6 +2066,7 @@
               "type": "integer",
               "minimum": 1
             },
+            "example": 5,
             "description": "Espera sugerida, em segundos, antes da repetição."
           }
         },
@@ -1625,6 +2074,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "DEPENDENCIA_INDISPONIVEL",
+              "message": "Dependência necessária indisponível. Não é garantia de ausência de efeito após perda da resposta; repetir com a mesma chave.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }

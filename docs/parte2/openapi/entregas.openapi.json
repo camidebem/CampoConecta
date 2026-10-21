@@ -63,13 +63,25 @@
                   "type": "string",
                   "format": "uri-reference"
                 },
-                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo."
+                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo.",
+                "example": "/api/v1/capacidades/00000013-0000-4000-8000-000000000001"
               }
             },
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Capacidade"
+                },
+                "example": {
+                  "id": "00000013-0000-4000-8000-000000000001",
+                  "escolaId": "00000002-0000-4000-8000-000000000001",
+                  "janela": {
+                    "inicio": "2026-11-25T08:00:00-03:00",
+                    "fim": "2026-11-25T17:00:00-03:00"
+                  },
+                  "capacidadeKg": "500.00",
+                  "reservadoKg": "0.00",
+                  "versao": 1
                 }
               }
             }
@@ -97,6 +109,14 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CapacidadeCriacao"
+              },
+              "example": {
+                "escolaId": "00000002-0000-4000-8000-000000000001",
+                "janela": {
+                  "inicio": "2026-11-25T08:00:00-03:00",
+                  "fim": "2026-11-25T17:00:00-03:00"
+                },
+                "capacidadeKg": "500.00"
               }
             }
           }
@@ -131,7 +151,8 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "example": "00000002-0000-4000-8000-000000000001"
           },
           {
             "name": "inicioDesde",
@@ -141,7 +162,8 @@
             "schema": {
               "type": "string",
               "format": "date-time"
-            }
+            },
+            "example": "2026-11-25T08:00:00-03:00"
           },
           {
             "name": "inicioAte",
@@ -151,7 +173,8 @@
             "schema": {
               "type": "string",
               "format": "date-time"
-            }
+            },
+            "example": "2026-11-25T17:00:00-03:00"
           }
         ],
         "responses": {
@@ -170,6 +193,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ListarCapacidadesPagina"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000013-0000-4000-8000-000000000001",
+                      "escolaId": "00000002-0000-4000-8000-000000000001",
+                      "janela": {
+                        "inicio": "2026-11-25T08:00:00-03:00",
+                        "fim": "2026-11-25T17:00:00-03:00"
+                      },
+                      "capacidadeKg": "500.00",
+                      "reservadoKg": "100.00",
+                      "versao": 1
+                    }
+                  ],
+                  "paginacao": {
+                    "pagina": 1,
+                    "tamanho": 20,
+                    "total": 1,
+                    "totalPaginas": 1
+                  }
                 }
               }
             }
@@ -225,6 +269,17 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Capacidade"
+                },
+                "example": {
+                  "id": "00000013-0000-4000-8000-000000000001",
+                  "escolaId": "00000002-0000-4000-8000-000000000001",
+                  "janela": {
+                    "inicio": "2026-11-25T08:00:00-03:00",
+                    "fim": "2026-11-25T17:00:00-03:00"
+                  },
+                  "capacidadeKg": "500.00",
+                  "reservadoKg": "100.00",
+                  "versao": 1
                 }
               }
             }
@@ -284,6 +339,17 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Capacidade"
+                },
+                "example": {
+                  "id": "00000013-0000-4000-8000-000000000001",
+                  "escolaId": "00000002-0000-4000-8000-000000000001",
+                  "janela": {
+                    "inicio": "2026-11-25T08:00:00-03:00",
+                    "fim": "2026-11-25T17:00:00-03:00"
+                  },
+                  "capacidadeKg": "400.00",
+                  "reservadoKg": "100.00",
+                  "versao": 2
                 }
               }
             }
@@ -314,6 +380,10 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CapacidadeAjuste"
+              },
+              "example": {
+                "versao": 1,
+                "capacidadeKg": "400.00"
               }
             }
           }
@@ -356,7 +426,8 @@
                 "RECEBIDA",
                 "CANCELADA"
               ]
-            }
+            },
+            "example": "AGENDADA"
           },
           {
             "name": "escolaId",
@@ -366,7 +437,8 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "example": "00000002-0000-4000-8000-000000000001"
           },
           {
             "name": "compraId",
@@ -376,7 +448,8 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "example": "00000010-0000-4000-8000-000000000001"
           },
           {
             "name": "inicioDesde",
@@ -386,7 +459,8 @@
             "schema": {
               "type": "string",
               "format": "date-time"
-            }
+            },
+            "example": "2026-11-25T08:00:00-03:00"
           },
           {
             "name": "inicioAte",
@@ -396,7 +470,8 @@
             "schema": {
               "type": "string",
               "format": "date-time"
-            }
+            },
+            "example": "2026-11-25T17:00:00-03:00"
           }
         ],
         "responses": {
@@ -415,6 +490,28 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ListarEntregasPagina"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000015-0000-4000-8000-000000000001",
+                      "compraId": "00000010-0000-4000-8000-000000000001",
+                      "escolaId": "00000002-0000-4000-8000-000000000001",
+                      "produtorId": "00000005-0000-4000-8000-000000000001",
+                      "agendamentoId": "00000014-0000-4000-8000-000000000001",
+                      "janela": {
+                        "inicio": "2026-11-25T08:00:00-03:00",
+                        "fim": "2026-11-25T17:00:00-03:00"
+                      },
+                      "status": "AGENDADA"
+                    }
+                  ],
+                  "paginacao": {
+                    "pagina": 1,
+                    "tamanho": 20,
+                    "total": 1,
+                    "totalPaginas": 1
+                  }
                 }
               }
             }
@@ -472,6 +569,18 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Entrega"
+                },
+                "example": {
+                  "id": "00000015-0000-4000-8000-000000000001",
+                  "compraId": "00000010-0000-4000-8000-000000000001",
+                  "escolaId": "00000002-0000-4000-8000-000000000001",
+                  "produtorId": "00000005-0000-4000-8000-000000000001",
+                  "agendamentoId": "00000014-0000-4000-8000-000000000001",
+                  "janela": {
+                    "inicio": "2026-11-25T08:00:00-03:00",
+                    "fim": "2026-11-25T17:00:00-03:00"
+                  },
+                  "status": "AGENDADA"
                 }
               }
             }
@@ -533,13 +642,20 @@
                   "type": "string",
                   "format": "uri-reference"
                 },
-                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo."
+                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo.",
+                "example": "/api/v1/entregas/00000015-0000-4000-8000-000000000001/recebimentos"
               }
             },
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConfirmacaoRecebimento"
+                },
+                "example": {
+                  "id": "00000017-0000-4000-8000-000000000001",
+                  "entregaId": "00000015-0000-4000-8000-000000000001",
+                  "confirmadoPor": "00000018-0000-4000-8000-000000000001",
+                  "confirmadoEm": "2026-11-25T10:30:00-03:00"
                 }
               }
             }
@@ -570,7 +686,8 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RecebimentoCriacao"
-              }
+              },
+              "example": {}
             }
           }
         }
@@ -690,6 +807,12 @@
         "required": [
           "inicio",
           "fim"
+        ],
+        "examples": [
+          {
+            "inicio": "2026-11-25T08:00:00-03:00",
+            "fim": "2026-11-25T17:00:00-03:00"
+          }
         ]
       },
       "CapacidadeCriacao": {
@@ -751,6 +874,19 @@
           "capacidadeKg",
           "reservadoKg",
           "versao"
+        ],
+        "examples": [
+          {
+            "id": "00000013-0000-4000-8000-000000000001",
+            "escolaId": "00000002-0000-4000-8000-000000000001",
+            "janela": {
+              "inicio": "2026-11-25T08:00:00-03:00",
+              "fim": "2026-11-25T17:00:00-03:00"
+            },
+            "capacidadeKg": "500.00",
+            "reservadoKg": "100.00",
+            "versao": 1
+          }
         ]
       },
       "CapacidadeAjuste": {
@@ -823,6 +959,20 @@
           "agendamentoId",
           "janela",
           "status"
+        ],
+        "examples": [
+          {
+            "id": "00000015-0000-4000-8000-000000000001",
+            "compraId": "00000010-0000-4000-8000-000000000001",
+            "escolaId": "00000002-0000-4000-8000-000000000001",
+            "produtorId": "00000005-0000-4000-8000-000000000001",
+            "agendamentoId": "00000014-0000-4000-8000-000000000001",
+            "janela": {
+              "inicio": "2026-11-25T08:00:00-03:00",
+              "fim": "2026-11-25T17:00:00-03:00"
+            },
+            "status": "AGENDADA"
+          }
         ]
       },
       "RecebimentoCriacao": {
@@ -857,6 +1007,14 @@
           "entregaId",
           "confirmadoPor",
           "confirmadoEm"
+        ],
+        "examples": [
+          {
+            "id": "00000017-0000-4000-8000-000000000001",
+            "entregaId": "00000015-0000-4000-8000-000000000001",
+            "confirmadoPor": "00000018-0000-4000-8000-000000000001",
+            "confirmadoEm": "2026-11-25T10:30:00-03:00"
+          }
         ]
       },
       "ListarCapacidadesPagina": {
@@ -909,7 +1067,8 @@
         "schema": {
           "type": "string",
           "format": "uuid"
-        }
+        },
+        "example": "00000001-0000-4000-8000-000000000001"
       },
       "CorrelationId": {
         "name": "X-Correlation-Id",
@@ -919,7 +1078,8 @@
         "schema": {
           "type": "string",
           "format": "uuid"
-        }
+        },
+        "example": "00000099-0000-4000-8000-000000000001"
       },
       "IdempotencyKey": {
         "name": "Idempotency-Key",
@@ -929,7 +1089,8 @@
         "schema": {
           "type": "string",
           "format": "uuid"
-        }
+        },
+        "example": "00000098-0000-4000-8000-000000000001"
       },
       "Pagina": {
         "name": "pagina",
@@ -939,7 +1100,8 @@
           "type": "integer",
           "minimum": 1,
           "default": 1
-        }
+        },
+        "example": 1
       },
       "Tamanho": {
         "name": "tamanho",
@@ -950,7 +1112,8 @@
           "minimum": 1,
           "maximum": 50,
           "default": 20
-        }
+        },
+        "example": 20
       }
     },
     "responses": {
@@ -969,6 +1132,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "REQUISICAO_INVALIDA",
+              "message": "Corpo, parâmetro ou cabeçalho inválido, ausente ou não suportado.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -987,6 +1156,7 @@
             "schema": {
               "type": "string"
             },
+            "example": "Bearer",
             "description": "Desafio de autenticação Bearer."
           }
         },
@@ -994,6 +1164,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "NAO_AUTENTICADO",
+              "message": "Token ausente, expirado ou inválido.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -1013,6 +1189,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "ACESSO_NEGADO",
+              "message": "Papel ou vínculo não autoriza esta operação.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -1032,6 +1214,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "RECURSO_NAO_ENCONTRADO",
+              "message": "Recurso identificado não existe.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -1051,6 +1239,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "CONFLITO_DE_ESTADO",
+              "message": "Estado, versão, unicidade, vínculo de negócio ou chave idempotente em conflito.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -1070,6 +1264,7 @@
               "type": "integer",
               "minimum": 1
             },
+            "example": 5,
             "description": "Espera sugerida, em segundos, antes da repetição."
           }
         },
@@ -1077,6 +1272,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "DEPENDENCIA_INDISPONIVEL",
+              "message": "Dependência necessária indisponível. Não é garantia de ausência de efeito após perda da resposta; repetir com a mesma chave.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }

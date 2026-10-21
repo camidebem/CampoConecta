@@ -67,13 +67,22 @@
                   "type": "string",
                   "format": "uri-reference"
                 },
-                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo."
+                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo.",
+                "example": "/api/v1/produtores/00000005-0000-4000-8000-000000000001"
               }
             },
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Produtor"
+                },
+                "example": {
+                  "id": "00000005-0000-4000-8000-000000000001",
+                  "nome": "Produtor Exemplo",
+                  "documento": "12345678901",
+                  "email": "produtor@example.org",
+                  "ativo": true,
+                  "versao": 1
                 }
               }
             }
@@ -101,6 +110,11 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ProdutorCriacao"
+              },
+              "example": {
+                "nome": "Produtor Exemplo",
+                "documento": "12345678901",
+                "email": "produtor@example.org"
               }
             }
           }
@@ -143,6 +157,14 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Produtor"
+                },
+                "example": {
+                  "id": "00000005-0000-4000-8000-000000000001",
+                  "nome": "Produtor Exemplo",
+                  "documento": "12345678901",
+                  "email": "produtor@example.org",
+                  "ativo": true,
+                  "versao": 1
                 }
               }
             }
@@ -202,6 +224,14 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Produtor"
+                },
+                "example": {
+                  "id": "00000005-0000-4000-8000-000000000001",
+                  "nome": "Produtor Atualizado",
+                  "documento": "12345678901",
+                  "email": "produtor@example.org",
+                  "ativo": true,
+                  "versao": 2
                 }
               }
             }
@@ -232,6 +262,10 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ProdutorAjuste"
+              },
+              "example": {
+                "versao": 1,
+                "nome": "Produtor Atualizado"
               }
             }
           }
@@ -274,13 +308,25 @@
                   "type": "string",
                   "format": "uri-reference"
                 },
-                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo."
+                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo.",
+                "example": "/api/v1/ofertas/00000006-0000-4000-8000-000000000001"
               }
             },
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Oferta"
+                },
+                "example": {
+                  "id": "00000006-0000-4000-8000-000000000001",
+                  "produtorId": "00000005-0000-4000-8000-000000000001",
+                  "produto": "Arroz",
+                  "quantidadeDisponivel": {
+                    "valor": "200.00",
+                    "unidade": "kg"
+                  },
+                  "ativa": true,
+                  "versao": 1
                 }
               }
             }
@@ -311,6 +357,14 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/OfertaCriacao"
+              },
+              "example": {
+                "produtorId": "00000005-0000-4000-8000-000000000001",
+                "produto": "Arroz",
+                "quantidadeDisponivel": {
+                  "valor": "200.00",
+                  "unidade": "kg"
+                }
               }
             }
           }
@@ -344,7 +398,8 @@
             "description": "Situação da oferta.",
             "schema": {
               "type": "boolean"
-            }
+            },
+            "example": true
           },
           {
             "name": "produto",
@@ -356,7 +411,8 @@
               "minLength": 1,
               "maxLength": 200,
               "description": "Nome de produto."
-            }
+            },
+            "example": "Arroz"
           }
         ],
         "responses": {
@@ -375,6 +431,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ListarOfertasPagina"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000006-0000-4000-8000-000000000001",
+                      "produtorId": "00000005-0000-4000-8000-000000000001",
+                      "produto": "Arroz",
+                      "quantidadeDisponivel": {
+                        "valor": "200.00",
+                        "unidade": "kg"
+                      },
+                      "ativa": true,
+                      "versao": 1
+                    }
+                  ],
+                  "paginacao": {
+                    "pagina": 1,
+                    "tamanho": 20,
+                    "total": 1,
+                    "totalPaginas": 1
+                  }
                 }
               }
             }
@@ -430,6 +507,17 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Oferta"
+                },
+                "example": {
+                  "id": "00000006-0000-4000-8000-000000000001",
+                  "produtorId": "00000005-0000-4000-8000-000000000001",
+                  "produto": "Arroz",
+                  "quantidadeDisponivel": {
+                    "valor": "200.00",
+                    "unidade": "kg"
+                  },
+                  "ativa": true,
+                  "versao": 1
                 }
               }
             }
@@ -489,6 +577,17 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Oferta"
+                },
+                "example": {
+                  "id": "00000006-0000-4000-8000-000000000001",
+                  "produtorId": "00000005-0000-4000-8000-000000000001",
+                  "produto": "Arroz",
+                  "quantidadeDisponivel": {
+                    "valor": "150.00",
+                    "unidade": "kg"
+                  },
+                  "ativa": true,
+                  "versao": 2
                 }
               }
             }
@@ -519,6 +618,13 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/OfertaAjuste"
+              },
+              "example": {
+                "versao": 1,
+                "quantidadeDisponivel": {
+                  "valor": "150.00",
+                  "unidade": "kg"
+                }
               }
             }
           }
@@ -561,6 +667,17 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Reserva"
+                },
+                "example": {
+                  "id": "00000007-0000-4000-8000-000000000001",
+                  "ofertaId": "00000006-0000-4000-8000-000000000001",
+                  "compraId": "00000010-0000-4000-8000-000000000001",
+                  "quantidade": {
+                    "valor": "100.00",
+                    "unidade": "kg"
+                  },
+                  "status": "ATIVA",
+                  "criadoEm": "2026-10-20T10:00:00-03:00"
                 }
               }
             }
@@ -788,6 +905,16 @@
           "email",
           "ativo",
           "versao"
+        ],
+        "examples": [
+          {
+            "id": "00000005-0000-4000-8000-000000000001",
+            "nome": "Produtor Exemplo",
+            "documento": "12345678901",
+            "email": "produtor@example.org",
+            "ativo": true,
+            "versao": 1
+          }
         ]
       },
       "ProdutorAjuste": {
@@ -876,6 +1003,19 @@
           "quantidadeDisponivel",
           "ativa",
           "versao"
+        ],
+        "examples": [
+          {
+            "id": "00000006-0000-4000-8000-000000000001",
+            "produtorId": "00000005-0000-4000-8000-000000000001",
+            "produto": "Arroz",
+            "quantidadeDisponivel": {
+              "valor": "200.00",
+              "unidade": "kg"
+            },
+            "ativa": true,
+            "versao": 1
+          }
         ]
       },
       "OfertaAjuste": {
@@ -936,6 +1076,19 @@
           "quantidade",
           "status",
           "criadoEm"
+        ],
+        "examples": [
+          {
+            "id": "00000007-0000-4000-8000-000000000001",
+            "ofertaId": "00000006-0000-4000-8000-000000000001",
+            "compraId": "00000010-0000-4000-8000-000000000001",
+            "quantidade": {
+              "valor": "100.00",
+              "unidade": "kg"
+            },
+            "status": "ATIVA",
+            "criadoEm": "2026-10-20T10:00:00-03:00"
+          }
         ]
       },
       "ListarOfertasPagina": {
@@ -968,7 +1121,8 @@
         "schema": {
           "type": "string",
           "format": "uuid"
-        }
+        },
+        "example": "00000001-0000-4000-8000-000000000001"
       },
       "CorrelationId": {
         "name": "X-Correlation-Id",
@@ -978,7 +1132,8 @@
         "schema": {
           "type": "string",
           "format": "uuid"
-        }
+        },
+        "example": "00000099-0000-4000-8000-000000000001"
       },
       "IdempotencyKey": {
         "name": "Idempotency-Key",
@@ -988,7 +1143,8 @@
         "schema": {
           "type": "string",
           "format": "uuid"
-        }
+        },
+        "example": "00000098-0000-4000-8000-000000000001"
       },
       "Pagina": {
         "name": "pagina",
@@ -998,7 +1154,8 @@
           "type": "integer",
           "minimum": 1,
           "default": 1
-        }
+        },
+        "example": 1
       },
       "Tamanho": {
         "name": "tamanho",
@@ -1009,7 +1166,8 @@
           "minimum": 1,
           "maximum": 50,
           "default": 20
-        }
+        },
+        "example": 20
       }
     },
     "responses": {
@@ -1028,6 +1186,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "REQUISICAO_INVALIDA",
+              "message": "Corpo, parâmetro ou cabeçalho inválido, ausente ou não suportado.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -1046,6 +1210,7 @@
             "schema": {
               "type": "string"
             },
+            "example": "Bearer",
             "description": "Desafio de autenticação Bearer."
           }
         },
@@ -1053,6 +1218,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "NAO_AUTENTICADO",
+              "message": "Token ausente, expirado ou inválido.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -1072,6 +1243,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "ACESSO_NEGADO",
+              "message": "Papel ou vínculo não autoriza esta operação.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -1091,6 +1268,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "RECURSO_NAO_ENCONTRADO",
+              "message": "Recurso identificado não existe.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -1110,6 +1293,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "CONFLITO_DE_ESTADO",
+              "message": "Estado, versão, unicidade, vínculo de negócio ou chave idempotente em conflito.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -1129,6 +1318,7 @@
               "type": "integer",
               "minimum": 1
             },
+            "example": 5,
             "description": "Espera sugerida, em segundos, antes da repetição."
           }
         },
@@ -1136,6 +1326,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "DEPENDENCIA_INDISPONIVEL",
+              "message": "Dependência necessária indisponível. Não é garantia de ausência de efeito após perda da resposta; repetir com a mesma chave.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }

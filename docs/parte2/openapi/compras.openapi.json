@@ -67,13 +67,39 @@
                   "type": "string",
                   "format": "uri-reference"
                 },
-                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo."
+                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo.",
+                "example": "/api/v1/propostas/00000008-0000-4000-8000-000000000001"
               }
             },
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Proposta"
+                },
+                "example": {
+                  "id": "00000008-0000-4000-8000-000000000001",
+                  "editalId": "00000003-0000-4000-8000-000000000001",
+                  "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                  "ofertaId": "00000006-0000-4000-8000-000000000001",
+                  "quantidade": {
+                    "valor": "100.00",
+                    "unidade": "kg"
+                  },
+                  "precoUnitario": {
+                    "valor": "5.00",
+                    "moeda": "BRL"
+                  },
+                  "produtorId": "00000005-0000-4000-8000-000000000001",
+                  "status": "ENVIADA",
+                  "snapshot": {
+                    "editalTitulo": "Chamada pública de alimentos",
+                    "escolaId": "00000002-0000-4000-8000-000000000001",
+                    "escolaNome": "Escola Exemplo",
+                    "produtorNome": "Produtor Exemplo",
+                    "produto": "Arroz",
+                    "snapshotAt": "2026-10-20T10:00:00-03:00"
+                  },
+                  "criadoEm": "2026-10-20T10:00:00-03:00"
                 }
               }
             }
@@ -104,6 +130,19 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PropostaCriacao"
+              },
+              "example": {
+                "editalId": "00000003-0000-4000-8000-000000000001",
+                "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                "ofertaId": "00000006-0000-4000-8000-000000000001",
+                "quantidade": {
+                  "valor": "100.00",
+                  "unidade": "kg"
+                },
+                "precoUnitario": {
+                  "valor": "5.00",
+                  "moeda": "BRL"
+                }
               }
             }
           }
@@ -139,7 +178,8 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "example": "00000003-0000-4000-8000-000000000001"
           },
           {
             "name": "status",
@@ -154,7 +194,8 @@
                 "RETIRADA",
                 "REJEITADA"
               ]
-            }
+            },
+            "example": "ENVIADA"
           }
         ],
         "responses": {
@@ -173,6 +214,41 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ListarPropostasPagina"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000008-0000-4000-8000-000000000001",
+                      "editalId": "00000003-0000-4000-8000-000000000001",
+                      "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                      "ofertaId": "00000006-0000-4000-8000-000000000001",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "precoUnitario": {
+                        "valor": "5.00",
+                        "moeda": "BRL"
+                      },
+                      "produtorId": "00000005-0000-4000-8000-000000000001",
+                      "status": "ENVIADA",
+                      "snapshot": {
+                        "editalTitulo": "Chamada pública de alimentos",
+                        "escolaId": "00000002-0000-4000-8000-000000000001",
+                        "escolaNome": "Escola Exemplo",
+                        "produtorNome": "Produtor Exemplo",
+                        "produto": "Arroz",
+                        "snapshotAt": "2026-10-20T10:00:00-03:00"
+                      },
+                      "criadoEm": "2026-10-20T10:00:00-03:00"
+                    }
+                  ],
+                  "paginacao": {
+                    "pagina": 1,
+                    "tamanho": 20,
+                    "total": 1,
+                    "totalPaginas": 1
+                  }
                 }
               }
             }
@@ -229,6 +305,31 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Proposta"
+                },
+                "example": {
+                  "id": "00000008-0000-4000-8000-000000000001",
+                  "editalId": "00000003-0000-4000-8000-000000000001",
+                  "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                  "ofertaId": "00000006-0000-4000-8000-000000000001",
+                  "quantidade": {
+                    "valor": "100.00",
+                    "unidade": "kg"
+                  },
+                  "precoUnitario": {
+                    "valor": "5.00",
+                    "moeda": "BRL"
+                  },
+                  "produtorId": "00000005-0000-4000-8000-000000000001",
+                  "status": "ENVIADA",
+                  "snapshot": {
+                    "editalTitulo": "Chamada pública de alimentos",
+                    "escolaId": "00000002-0000-4000-8000-000000000001",
+                    "escolaNome": "Escola Exemplo",
+                    "produtorNome": "Produtor Exemplo",
+                    "produto": "Arroz",
+                    "snapshotAt": "2026-10-20T10:00:00-03:00"
+                  },
+                  "criadoEm": "2026-10-20T10:00:00-03:00"
                 }
               }
             }
@@ -290,6 +391,31 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Proposta"
+                },
+                "example": {
+                  "id": "00000008-0000-4000-8000-000000000001",
+                  "editalId": "00000003-0000-4000-8000-000000000001",
+                  "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                  "ofertaId": "00000006-0000-4000-8000-000000000001",
+                  "quantidade": {
+                    "valor": "100.00",
+                    "unidade": "kg"
+                  },
+                  "precoUnitario": {
+                    "valor": "5.00",
+                    "moeda": "BRL"
+                  },
+                  "produtorId": "00000005-0000-4000-8000-000000000001",
+                  "status": "RETIRADA",
+                  "snapshot": {
+                    "editalTitulo": "Chamada pública de alimentos",
+                    "escolaId": "00000002-0000-4000-8000-000000000001",
+                    "escolaNome": "Escola Exemplo",
+                    "produtorNome": "Produtor Exemplo",
+                    "produto": "Arroz",
+                    "snapshotAt": "2026-10-20T10:00:00-03:00"
+                  },
+                  "criadoEm": "2026-10-20T10:00:00-03:00"
                 }
               }
             }
@@ -320,6 +446,9 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RetiradaProposta"
+              },
+              "example": {
+                "motivo": "Produção indisponível"
               }
             }
           }
@@ -362,13 +491,40 @@
                   "type": "string",
                   "format": "uri-reference"
                 },
-                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo."
+                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo.",
+                "example": "/api/v1/planos-alocacao/00000011-0000-4000-8000-000000000001"
               }
             },
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Plano"
+                },
+                "example": {
+                  "id": "00000011-0000-4000-8000-000000000001",
+                  "editalId": "00000003-0000-4000-8000-000000000001",
+                  "gestorId": "00000012-0000-4000-8000-000000000001",
+                  "criteriosSnapshot": [
+                    {
+                      "codigo": "ORDEM_ENVIO",
+                      "ordem": "ASC",
+                      "parametros": {}
+                    }
+                  ],
+                  "snapshotAt": "2026-10-20T10:00:00-03:00",
+                  "status": "SUGERIDO",
+                  "versao": 1,
+                  "itens": [
+                    {
+                      "id": "00000009-0000-4000-8000-000000000001",
+                      "propostaId": "00000008-0000-4000-8000-000000000001",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "status": "PENDENTE"
+                    }
+                  ]
                 }
               }
             }
@@ -399,6 +555,9 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PlanoCriacao"
+              },
+              "example": {
+                "editalId": "00000003-0000-4000-8000-000000000001"
               }
             }
           }
@@ -433,7 +592,8 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "example": "00000003-0000-4000-8000-000000000001"
           },
           {
             "name": "status",
@@ -446,7 +606,8 @@
                 "SUGERIDO",
                 "HOMOLOGADO"
               ]
-            }
+            },
+            "example": "SUGERIDO"
           }
         ],
         "responses": {
@@ -465,6 +626,42 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ListarPlanosPagina"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000011-0000-4000-8000-000000000001",
+                      "editalId": "00000003-0000-4000-8000-000000000001",
+                      "gestorId": "00000012-0000-4000-8000-000000000001",
+                      "criteriosSnapshot": [
+                        {
+                          "codigo": "ORDEM_ENVIO",
+                          "ordem": "ASC",
+                          "parametros": {}
+                        }
+                      ],
+                      "snapshotAt": "2026-10-20T10:00:00-03:00",
+                      "status": "SUGERIDO",
+                      "versao": 1,
+                      "itens": [
+                        {
+                          "id": "00000009-0000-4000-8000-000000000001",
+                          "propostaId": "00000008-0000-4000-8000-000000000001",
+                          "quantidade": {
+                            "valor": "100.00",
+                            "unidade": "kg"
+                          },
+                          "status": "PENDENTE"
+                        }
+                      ]
+                    }
+                  ],
+                  "paginacao": {
+                    "pagina": 1,
+                    "tamanho": 20,
+                    "total": 1,
+                    "totalPaginas": 1
+                  }
                 }
               }
             }
@@ -520,6 +717,32 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Plano"
+                },
+                "example": {
+                  "id": "00000011-0000-4000-8000-000000000001",
+                  "editalId": "00000003-0000-4000-8000-000000000001",
+                  "gestorId": "00000012-0000-4000-8000-000000000001",
+                  "criteriosSnapshot": [
+                    {
+                      "codigo": "ORDEM_ENVIO",
+                      "ordem": "ASC",
+                      "parametros": {}
+                    }
+                  ],
+                  "snapshotAt": "2026-10-20T10:00:00-03:00",
+                  "status": "SUGERIDO",
+                  "versao": 1,
+                  "itens": [
+                    {
+                      "id": "00000009-0000-4000-8000-000000000001",
+                      "propostaId": "00000008-0000-4000-8000-000000000001",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "status": "PENDENTE"
+                    }
+                  ]
                 }
               }
             }
@@ -579,6 +802,32 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Plano"
+                },
+                "example": {
+                  "id": "00000011-0000-4000-8000-000000000001",
+                  "editalId": "00000003-0000-4000-8000-000000000001",
+                  "gestorId": "00000012-0000-4000-8000-000000000001",
+                  "criteriosSnapshot": [
+                    {
+                      "codigo": "ORDEM_ENVIO",
+                      "ordem": "ASC",
+                      "parametros": {}
+                    }
+                  ],
+                  "snapshotAt": "2026-10-20T10:00:00-03:00",
+                  "status": "SUGERIDO",
+                  "versao": 2,
+                  "itens": [
+                    {
+                      "id": "00000009-0000-4000-8000-000000000001",
+                      "propostaId": "00000008-0000-4000-8000-000000000001",
+                      "quantidade": {
+                        "valor": "90.00",
+                        "unidade": "kg"
+                      },
+                      "status": "PENDENTE"
+                    }
+                  ]
                 }
               }
             }
@@ -609,6 +858,18 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PlanoAjuste"
+              },
+              "example": {
+                "versao": 1,
+                "itens": [
+                  {
+                    "id": "00000009-0000-4000-8000-000000000001",
+                    "quantidade": {
+                      "valor": "90.00",
+                      "unidade": "kg"
+                    }
+                  }
+                ]
               }
             }
           }
@@ -654,13 +915,42 @@
                   "type": "string",
                   "format": "uri-reference"
                 },
-                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo."
+                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo.",
+                "example": "/api/v1/planos-alocacao/00000011-0000-4000-8000-000000000001"
               }
             },
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Plano"
+                },
+                "example": {
+                  "id": "00000011-0000-4000-8000-000000000001",
+                  "editalId": "00000003-0000-4000-8000-000000000001",
+                  "gestorId": "00000012-0000-4000-8000-000000000001",
+                  "criteriosSnapshot": [
+                    {
+                      "codigo": "ORDEM_ENVIO",
+                      "ordem": "ASC",
+                      "parametros": {}
+                    }
+                  ],
+                  "snapshotAt": "2026-10-20T10:00:00-03:00",
+                  "status": "HOMOLOGADO",
+                  "versao": 2,
+                  "itens": [
+                    {
+                      "id": "00000009-0000-4000-8000-000000000001",
+                      "propostaId": "00000008-0000-4000-8000-000000000001",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "status": "HOMOLOGADO",
+                      "compraId": "00000010-0000-4000-8000-000000000001",
+                      "compraStatus": "PENDENTE"
+                    }
+                  ]
                 }
               }
             }
@@ -691,6 +981,9 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/Homologacao"
+              },
+              "example": {
+                "versao": 1
               }
             }
           }
@@ -734,7 +1027,8 @@
                 "RECEBIDA",
                 "CANCELADA"
               ]
-            }
+            },
+            "example": "PENDENTE"
           },
           {
             "name": "editalId",
@@ -744,7 +1038,8 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "example": "00000003-0000-4000-8000-000000000001"
           },
           {
             "name": "escolaId",
@@ -754,7 +1049,8 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "example": "00000002-0000-4000-8000-000000000001"
           },
           {
             "name": "produtorId",
@@ -764,7 +1060,8 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "example": "00000005-0000-4000-8000-000000000001"
           }
         ],
         "responses": {
@@ -783,6 +1080,48 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ListarComprasPagina"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000010-0000-4000-8000-000000000001",
+                      "planoItemId": "00000009-0000-4000-8000-000000000001",
+                      "propostaId": "00000008-0000-4000-8000-000000000001",
+                      "editalId": "00000003-0000-4000-8000-000000000001",
+                      "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                      "produtorId": "00000005-0000-4000-8000-000000000001",
+                      "escolaId": "00000002-0000-4000-8000-000000000001",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "precoUnitario": {
+                        "valor": "5.00",
+                        "moeda": "BRL"
+                      },
+                      "valorTotal": {
+                        "valor": "500.00",
+                        "moeda": "BRL"
+                      },
+                      "status": "PENDENTE",
+                      "estadoSaga": "EM_ANDAMENTO",
+                      "snapshot": {
+                        "editalTitulo": "Chamada pública de alimentos",
+                        "escolaId": "00000002-0000-4000-8000-000000000001",
+                        "escolaNome": "Escola Exemplo",
+                        "produtorNome": "Produtor Exemplo",
+                        "produto": "Arroz",
+                        "snapshotAt": "2026-10-20T10:00:00-03:00"
+                      },
+                      "versao": 1
+                    }
+                  ],
+                  "paginacao": {
+                    "pagina": 1,
+                    "tamanho": 20,
+                    "total": 1,
+                    "totalPaginas": 1
+                  }
                 }
               }
             }
@@ -840,6 +1179,78 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Compra"
+                },
+                "examples": {
+                  "pendente": {
+                    "summary": "Compra pendente; sem entrega ou liberação",
+                    "value": {
+                      "id": "00000010-0000-4000-8000-000000000001",
+                      "planoItemId": "00000009-0000-4000-8000-000000000001",
+                      "propostaId": "00000008-0000-4000-8000-000000000001",
+                      "editalId": "00000003-0000-4000-8000-000000000001",
+                      "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                      "produtorId": "00000005-0000-4000-8000-000000000001",
+                      "escolaId": "00000002-0000-4000-8000-000000000001",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "precoUnitario": {
+                        "valor": "5.00",
+                        "moeda": "BRL"
+                      },
+                      "valorTotal": {
+                        "valor": "500.00",
+                        "moeda": "BRL"
+                      },
+                      "status": "PENDENTE",
+                      "estadoSaga": "EM_ANDAMENTO",
+                      "snapshot": {
+                        "editalTitulo": "Chamada pública de alimentos",
+                        "escolaId": "00000002-0000-4000-8000-000000000001",
+                        "escolaNome": "Escola Exemplo",
+                        "produtorNome": "Produtor Exemplo",
+                        "produto": "Arroz",
+                        "snapshotAt": "2026-10-20T10:00:00-03:00"
+                      },
+                      "versao": 1
+                    }
+                  },
+                  "recebida": {
+                    "summary": "Compra recebida, consultada pelo produtor autorizado",
+                    "value": {
+                      "id": "00000010-0000-4000-8000-000000000001",
+                      "planoItemId": "00000009-0000-4000-8000-000000000001",
+                      "propostaId": "00000008-0000-4000-8000-000000000001",
+                      "editalId": "00000003-0000-4000-8000-000000000001",
+                      "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                      "produtorId": "00000005-0000-4000-8000-000000000001",
+                      "escolaId": "00000002-0000-4000-8000-000000000001",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "precoUnitario": {
+                        "valor": "5.00",
+                        "moeda": "BRL"
+                      },
+                      "valorTotal": {
+                        "valor": "500.00",
+                        "moeda": "BRL"
+                      },
+                      "status": "RECEBIDA",
+                      "estadoSaga": "CONCLUIDA",
+                      "snapshot": {
+                        "editalTitulo": "Chamada pública de alimentos",
+                        "escolaId": "00000002-0000-4000-8000-000000000001",
+                        "escolaNome": "Escola Exemplo",
+                        "produtorNome": "Produtor Exemplo",
+                        "produto": "Arroz",
+                        "snapshotAt": "2026-10-20T10:00:00-03:00"
+                      },
+                      "versao": 1
+                    }
+                  }
                 }
               }
             }
@@ -900,6 +1311,32 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AcompanhamentoCompra"
+                },
+                "example": {
+                  "compraId": "00000010-0000-4000-8000-000000000001",
+                  "editalId": "00000003-0000-4000-8000-000000000001",
+                  "editalTitulo": "Chamada pública de alimentos",
+                  "produtorId": "00000005-0000-4000-8000-000000000001",
+                  "produtorNome": "Produtor Exemplo",
+                  "escolaId": "00000002-0000-4000-8000-000000000001",
+                  "escolaNome": "Escola Exemplo",
+                  "produto": "Arroz",
+                  "quantidade": {
+                    "valor": "100.00",
+                    "unidade": "kg"
+                  },
+                  "status": "CONFIRMADA",
+                  "etapaSaga": "CONCLUIDA",
+                  "entrega": {
+                    "id": "00000015-0000-4000-8000-000000000001",
+                    "status": "AGENDADA",
+                    "data": "2026-11-25"
+                  },
+                  "pagamento": {
+                    "status": "AGUARDANDO_RECEBIMENTO"
+                  },
+                  "updatedAt": "2026-10-20T10:00:00-03:00",
+                  "versao": 4
                 }
               }
             }
@@ -959,6 +1396,15 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LiberacaoPagamento"
+                },
+                "example": {
+                  "id": "00000016-0000-4000-8000-000000000001",
+                  "compraId": "00000010-0000-4000-8000-000000000001",
+                  "valor": {
+                    "valor": "500.00",
+                    "moeda": "BRL"
+                  },
+                  "liberadoEm": "2026-11-25T10:30:00-03:00"
                 }
               }
             }
@@ -1195,6 +1641,21 @@
           "ofertaId",
           "quantidade",
           "precoUnitario"
+        ],
+        "examples": [
+          {
+            "editalId": "00000003-0000-4000-8000-000000000001",
+            "itemEditalId": "00000004-0000-4000-8000-000000000001",
+            "ofertaId": "00000006-0000-4000-8000-000000000001",
+            "quantidade": {
+              "valor": "100.00",
+              "unidade": "kg"
+            },
+            "precoUnitario": {
+              "valor": "5.00",
+              "moeda": "BRL"
+            }
+          }
         ]
       },
       "Proposta": {
@@ -1255,6 +1716,33 @@
           "status",
           "snapshot",
           "criadoEm"
+        ],
+        "examples": [
+          {
+            "id": "00000008-0000-4000-8000-000000000001",
+            "editalId": "00000003-0000-4000-8000-000000000001",
+            "itemEditalId": "00000004-0000-4000-8000-000000000001",
+            "ofertaId": "00000006-0000-4000-8000-000000000001",
+            "quantidade": {
+              "valor": "100.00",
+              "unidade": "kg"
+            },
+            "precoUnitario": {
+              "valor": "5.00",
+              "moeda": "BRL"
+            },
+            "produtorId": "00000005-0000-4000-8000-000000000001",
+            "status": "ENVIADA",
+            "snapshot": {
+              "editalTitulo": "Chamada pública de alimentos",
+              "escolaId": "00000002-0000-4000-8000-000000000001",
+              "escolaNome": "Escola Exemplo",
+              "produtorNome": "Produtor Exemplo",
+              "produto": "Arroz",
+              "snapshotAt": "2026-10-20T10:00:00-03:00"
+            },
+            "criadoEm": "2026-10-20T10:00:00-03:00"
+          }
         ]
       },
       "RetiradaProposta": {
@@ -1312,6 +1800,17 @@
           "propostaId",
           "quantidade",
           "status"
+        ],
+        "examples": [
+          {
+            "id": "00000009-0000-4000-8000-000000000001",
+            "propostaId": "00000008-0000-4000-8000-000000000001",
+            "quantidade": {
+              "valor": "100.00",
+              "unidade": "kg"
+            },
+            "status": "PENDENTE"
+          }
         ]
       },
       "CriterioAplicado": {
@@ -1414,6 +1913,34 @@
           "status",
           "versao",
           "itens"
+        ],
+        "examples": [
+          {
+            "id": "00000011-0000-4000-8000-000000000001",
+            "editalId": "00000003-0000-4000-8000-000000000001",
+            "gestorId": "00000012-0000-4000-8000-000000000001",
+            "criteriosSnapshot": [
+              {
+                "codigo": "ORDEM_ENVIO",
+                "ordem": "ASC",
+                "parametros": {}
+              }
+            ],
+            "snapshotAt": "2026-10-20T10:00:00-03:00",
+            "status": "SUGERIDO",
+            "versao": 1,
+            "itens": [
+              {
+                "id": "00000009-0000-4000-8000-000000000001",
+                "propostaId": "00000008-0000-4000-8000-000000000001",
+                "quantidade": {
+                  "valor": "100.00",
+                  "unidade": "kg"
+                },
+                "status": "PENDENTE"
+              }
+            ]
+          }
         ]
       },
       "PlanoItemAjuste": {
@@ -1572,6 +2099,40 @@
           "estadoSaga",
           "snapshot",
           "versao"
+        ],
+        "examples": [
+          {
+            "id": "00000010-0000-4000-8000-000000000001",
+            "planoItemId": "00000009-0000-4000-8000-000000000001",
+            "propostaId": "00000008-0000-4000-8000-000000000001",
+            "editalId": "00000003-0000-4000-8000-000000000001",
+            "itemEditalId": "00000004-0000-4000-8000-000000000001",
+            "produtorId": "00000005-0000-4000-8000-000000000001",
+            "escolaId": "00000002-0000-4000-8000-000000000001",
+            "quantidade": {
+              "valor": "100.00",
+              "unidade": "kg"
+            },
+            "precoUnitario": {
+              "valor": "5.00",
+              "moeda": "BRL"
+            },
+            "valorTotal": {
+              "valor": "500.00",
+              "moeda": "BRL"
+            },
+            "status": "PENDENTE",
+            "estadoSaga": "EM_ANDAMENTO",
+            "snapshot": {
+              "editalTitulo": "Chamada pública de alimentos",
+              "escolaId": "00000002-0000-4000-8000-000000000001",
+              "escolaNome": "Escola Exemplo",
+              "produtorNome": "Produtor Exemplo",
+              "produto": "Arroz",
+              "snapshotAt": "2026-10-20T10:00:00-03:00"
+            },
+            "versao": 1
+          }
         ]
       },
       "EntregaAcompanhamento": {
@@ -1709,6 +2270,34 @@
           "pagamento",
           "updatedAt",
           "versao"
+        ],
+        "examples": [
+          {
+            "compraId": "00000010-0000-4000-8000-000000000001",
+            "editalId": "00000003-0000-4000-8000-000000000001",
+            "editalTitulo": "Chamada pública de alimentos",
+            "produtorId": "00000005-0000-4000-8000-000000000001",
+            "produtorNome": "Produtor Exemplo",
+            "escolaId": "00000002-0000-4000-8000-000000000001",
+            "escolaNome": "Escola Exemplo",
+            "produto": "Arroz",
+            "quantidade": {
+              "valor": "100.00",
+              "unidade": "kg"
+            },
+            "status": "CONFIRMADA",
+            "etapaSaga": "CONCLUIDA",
+            "entrega": {
+              "id": "00000015-0000-4000-8000-000000000001",
+              "status": "AGENDADA",
+              "data": "2026-11-25"
+            },
+            "pagamento": {
+              "status": "AGUARDANDO_RECEBIMENTO"
+            },
+            "updatedAt": "2026-10-20T10:00:00-03:00",
+            "versao": 4
+          }
         ]
       },
       "LiberacaoPagamento": {
@@ -1736,6 +2325,17 @@
           "compraId",
           "valor",
           "liberadoEm"
+        ],
+        "examples": [
+          {
+            "id": "00000016-0000-4000-8000-000000000001",
+            "compraId": "00000010-0000-4000-8000-000000000001",
+            "valor": {
+              "valor": "500.00",
+              "moeda": "BRL"
+            },
+            "liberadoEm": "2026-11-25T10:30:00-03:00"
+          }
         ]
       },
       "ListarPropostasPagina": {
@@ -1808,7 +2408,8 @@
         "schema": {
           "type": "string",
           "format": "uuid"
-        }
+        },
+        "example": "00000001-0000-4000-8000-000000000001"
       },
       "CorrelationId": {
         "name": "X-Correlation-Id",
@@ -1818,7 +2419,8 @@
         "schema": {
           "type": "string",
           "format": "uuid"
-        }
+        },
+        "example": "00000099-0000-4000-8000-000000000001"
       },
       "IdempotencyKey": {
         "name": "Idempotency-Key",
@@ -1828,7 +2430,8 @@
         "schema": {
           "type": "string",
           "format": "uuid"
-        }
+        },
+        "example": "00000098-0000-4000-8000-000000000001"
       },
       "Pagina": {
         "name": "pagina",
@@ -1838,7 +2441,8 @@
           "type": "integer",
           "minimum": 1,
           "default": 1
-        }
+        },
+        "example": 1
       },
       "Tamanho": {
         "name": "tamanho",
@@ -1849,7 +2453,8 @@
           "minimum": 1,
           "maximum": 50,
           "default": 20
-        }
+        },
+        "example": 20
       }
     },
     "responses": {
@@ -1868,6 +2473,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "REQUISICAO_INVALIDA",
+              "message": "Corpo, parâmetro ou cabeçalho inválido, ausente ou não suportado.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -1886,6 +2497,7 @@
             "schema": {
               "type": "string"
             },
+            "example": "Bearer",
             "description": "Desafio de autenticação Bearer."
           }
         },
@@ -1893,6 +2505,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "NAO_AUTENTICADO",
+              "message": "Token ausente, expirado ou inválido.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -1912,6 +2530,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "ACESSO_NEGADO",
+              "message": "Papel ou vínculo não autoriza esta operação.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -1931,6 +2555,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "RECURSO_NAO_ENCONTRADO",
+              "message": "Recurso identificado não existe.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -1950,6 +2580,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "CONFLITO_DE_ESTADO",
+              "message": "Estado, versão, unicidade, vínculo de negócio ou chave idempotente em conflito.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
@@ -1969,6 +2605,7 @@
               "type": "integer",
               "minimum": 1
             },
+            "example": 5,
             "description": "Espera sugerida, em segundos, antes da repetição."
           }
         },
@@ -1976,6 +2613,12 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "DEPENDENCIA_INDISPONIVEL",
+              "message": "Dependência necessária indisponível. Não é garantia de ausência de efeito após perda da resposta; repetir com a mesma chave.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
             }
           }
         }
