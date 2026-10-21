@@ -89,6 +89,8 @@ A documentação da **Parte 2 (arquitetura)** fica em `docs/`. O ponto de partid
 | [Serviços e fronteiras](docs/parte2/01-servicos.md) | Decomposição, justificativa das fronteiras, alternativas descartadas, diagramas e padrões |
 | [Dados, consistência e outbox](docs/parte2/02-dados-outbox.md) | Modelo de dados, concorrência nas reservas, consistência eventual, outbox e inbox |
 | [CQRS em Compras](docs/parte2/03-cqrs.md) | Modelo de escrita e leitura, projeção `AcompanhamentoCompra`, defasagem e reconstrução |
+| [SAGA: confirmar compra](docs/parte2/05-saga.md) | SAGA orquestrada, estados, compensações, sequências de sucesso e de falha, timeouts, recebimento e pagamento |
+| [Catálogo de mensagens](docs/parte2/06-mensagens.md) | Envelope, comandos, respostas, eventos, roteamento no RabbitMQ e versionamento |
 | [Princípios e padrões](docs/parte2/08-padroes-e-principios.md) | SOLID, padrões GoF e padrões arquiteturais aplicados ao projeto |
 | [ADRs](docs/adr/README.md) | Decisões registradas com contexto, alternativas consideradas e consequências |
 | [Plano de trabalho](docs/planejamento/plano-parte2.md) | Distribuição das frentes, tarefas e matriz de fechamento |
