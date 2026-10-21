@@ -70,3 +70,87 @@ Parâmetros propostos: 10 req/s por IP, burst 20; 5 req/s por identidade, burst 
 O exemplo permite CORS apenas para `https://portal.campoconecta.example`, com Bearer explícito, sem cookies de sessão. Aplicativo nativo não depende de CORS. Preflight de prefixos conhecidos retorna `204` sem autenticação e sem chamar domínio; a requisição efetiva continua exigindo token. A origem ilustrativa deve ser substituída na implantação. CORS não autoriza usuário.
 
 Certificados em `certs/tls.crt` e `certs/tls.key`, DNS dos upstreams, diretórios `logs/` e `temp/` e módulos precisam existir no ambiente futuro. Nenhum certificado/chave privada foi incluído no repositório. Antes de iniciar, validar com `nginx -t -p <prefixo-absoluto>/ -c nginx.conf`. O teste de sintaxe não comprova integração com os serviços.
+
+## 3. Por que dois BFFs
+
+| Aspecto | Prefeitura/escola — portal | Produtor — aplicativo |
+|---|---|---|
+| Objetivo | Supervisão, revisão e decisão em tela ampla | Consulta rápida e ações curtas em rede móvel |
+| Agregação | `GET /dashboard`: editais, saldo, compras por estado e entregas atrasadas | `GET /inicio`: propostas recentes, próximas entregas e editais compatíveis com suas ofertas |
+| Payload de compra | Objetos de edital/produtor/escola, estado da SAGA, entrega e pagamento | Produto, quantidade, destino, data e estado do pagamento, achatados |
+| Coleções | Página de até 50 itens, filtros e ordenação por campos enumerados | Cursor opaco, até 10 registros por resposta, campos compactos |
+| Escritas | Cadastros institucionais, edital, ajuste/homologação de plano, capacidade e recebimento pela escola | Cadastro próprio, ofertas, envio e retirada de proposta |
+| Sincronização | Consulta direta ao serviço, sem cache de regra de negócio | ETag, revalidação e mudanças observadas desde `atualizadoDesde` |
+
+Contratos: [BFF prefeitura](openapi/bff-prefeitura.openapi.json) e [BFF produtor](openapi/bff-produtor.openapi.json). Não são dois proxies com nomes diferentes: têm operações, schemas de consulta, agregações e mecanismos de paginação distintos. Operações de escola são um subconjunto das rotas do portal, não permissões de gestor.
+
+### 3.1 Composição e falhas
+
+`/dashboard` percorre as páginas autorizadas de Editais, Compras e Entregas. Conta editais `PUBLICADO`, agrupa compras por estado autoritativo e considera atrasada a entrega `AGENDADA` cuja `janela.fim` seja anterior a `consultadoEm`. Para escola, restringe itens e entregas à sua escola antes de contar. Um saldo exibido não garante uma reserva futura.
+
+`/inicio` consulta os quatro serviços, limita a três as propostas recentes e a três as próximas entregas; a contagem de editais considera pelo menos um item com produto e unidade iguais a uma oferta ativa. Trata-se de compatibilidade técnica, não de decisão de elegibilidade jurídica. Local da entrega vem do snapshot autorizado de Compra, sem consultar o banco de Editais. As regras de proposta continuam sendo verificadas no envio pelo serviço Compras.
+
+As composições não formam uma transação ou snapshot global. Para não apresentar contagem parcial como total, falha de fonte necessária resulta em `503`. Limite operacional proposto: 10.000 registros percorridos por composição; ao exceder, `503` pede restringir a consulta. Esse limite evita leitura ilimitada, mas o custo e a meta de desempenho ainda precisam ser medidos.
+
+A ordenação do portal é adaptada no BFF, pois os serviços têm ordenação fixa por ID. Os campos aceitos são enumerados por coleção nos contratos; desempate por UUID ascendente. O BFF consulta páginas autorizadas, ordena a visão em memória e depois aplica `pagina/tamanho`. Não envia cláusula SQL, ordenação arbitrária ou novo parâmetro não suportado ao serviço.
+
+### 3.2 Sincronização móvel sem alterar as APIs de domínio
+
+Os serviços atuais não oferecem cursor ou log incremental comum. O BFF produtor mantém um **cache técnico volátil por ator e consulta**, obtido por leitura das APIs autorizadas. Esse cache não é fonte de verdade e não recebe transações, saldos ou eventos de negócio diretamente.
+
+1. Primeira consulta sem cursor/instante: materializa os registros autorizados e publica uma visão ordenada por ID, dividida em lotes de até dez.
+2. Cursor assinado vincula `sub`, papel/vínculo, recurso, filtros, geração da visão, posição e expiração. Cursor de outro ator retorna `403`; adulterado retorna `400`; expirado ou sem cache correspondente retorna `410`.
+3. Um cursor continua a mesma visão congelada por até dez minutos. Mudanças posteriores ficam para a próxima sincronização. Items e IDs em `removidos` somam no máximo dez por página.
+4. Cada nova varredura compara o conteúdo canônico com a visão anterior. Alterações observadas e desaparecimentos do resultado geram entradas no histórico técnico, retido por trinta minutos. `removidos` também cobre registros que deixaram de atender ao filtro, não somente exclusão física.
+5. `atualizadoDesde` é um limite **exclusivo de observação pelo BFF**. A resposta fixa um limite superior `sincronizadoEm`; todas as páginas da geração usam o mesmo limite. Depois da última página, o aplicativo guarda esse marcador para a próxima consulta.
+6. Atribuição de marcadores é monotônica e serializada por ator/consulta, evitando perder mudanças com o mesmo instante. Marca futura retorna `400`; histórica anterior à retenção, reinício ou perda de cache retorna `410 SINCRONIZACAO_EXPIRADA`, seguido de sincronização completa pelo cliente.
+
+O BFF suporta consulta de estado observado, não auditoria de cada mutação intermediária do domínio. Paginação dos serviços também não oferece snapshot global; alterações concorrentes durante uma varredura podem ser vistas na próxima. O aplicativo deve realizar sincronizações completas periódicas e sempre validar ações no dono do recurso. Nenhuma leitura incremental garante disponibilidade de oferta.
+
+Escrita bem-sucedida invalida as visões técnicas afetadas para nova varredura; não é o cache que confirma a escrita. O desenho inicial pressupõe uma instância lógica do BFF com acesso ao seu cache; múltiplas réplicas exigem afinidade da sessão ou cache técnico compartilhado com isolamento por identidade. Isso será decidido na implantação, sem introduzir banco de domínio no BFF.
+
+### 3.3 ETag e revalidação
+
+Todos os GETs do aplicativo aceitam `If-None-Match`. Autenticação, autorização e atualização/revalidação da visão precedem a comparação. O ETag fraco identifica conteúdo canônico, escopo autenticado, filtros, geração e links. A comparação segue HTTP, incluindo lista de tags e `*`. Sem mudança, retorna `304`, com ETag e sem corpo.
+
+O ETag pertence à representação externa do BFF, não à resposta bruta do serviço. O BFF não repassa a condição como se os contratos internos já suportassem a mesma representação; consulta as fontes necessárias e calcula sua própria revalidação.
+
+Respostas incluem `Cache-Control: private, no-cache` e `Vary: Authorization`; CORS acrescenta a variação por origem na borda. Relógio de consulta não muda o hash sozinho: `sincronizadoEm` permanece estável enquanto o conteúdo não muda, salvo início de nova geração explícita. Não há cache público de dados do produtor nem `304` que dispense conferir vínculo. Mudança de claims/vínculo invalida a visão anterior.
+
+## 4. Comparação da mesma compra
+
+Exemplos para uma compra `CONFIRMADA`. IDs e contexto são os mesmos; o formato atende a cada cliente. Os exemplos completos, inclusive `_links`, estão nos dois OpenAPI.
+
+Portal, consultado por gestor:
+
+```json
+{
+  "cliente": "prefeitura",
+  "compraId": "00000010-0000-4000-8000-000000000001",
+  "status": "CONFIRMADA",
+  "edital": {"id": "00000003-0000-4000-8000-000000000001", "titulo": "Chamada pública de alimentos"},
+  "produtor": {"id": "00000005-0000-4000-8000-000000000001", "nome": "Produtor Exemplo"},
+  "escola": {"id": "00000002-0000-4000-8000-000000000001", "nome": "Escola Exemplo"},
+  "quantidade": {"valor": "100.00", "unidade": "kg"},
+  "estadoSaga": "CONCLUIDA",
+  "entrega": {"id": "00000015-0000-4000-8000-000000000001", "status": "AGENDADA", "data": "2026-11-25"},
+  "pagamento": {"status": "AGUARDANDO_RECEBIMENTO"}
+}
+```
+
+Aplicativo, consultado pelo produtor da compra:
+
+```json
+{
+  "cliente": "produtor",
+  "compraId": "00000010-0000-4000-8000-000000000001",
+  "status": "CONFIRMADA",
+  "produto": "Arroz",
+  "quantidade": {"valor": "100.00", "unidade": "kg"},
+  "localEntrega": "Escola Exemplo",
+  "dataEntrega": "2026-11-25",
+  "pagamento": "AGUARDANDO_RECEBIMENTO"
+}
+```
+
+Esses trechos mostram os campos de negócio; a representação completa também exige `_links`. Histórico de transições não é inventado pelo BFF: os serviços atuais não o expõem por HTTP. A versão do portal preserva mais contexto e estado atual; uma futura linha do tempo precisa de contrato próprio do dono.
