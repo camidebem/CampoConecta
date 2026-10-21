@@ -2350,6 +2350,20 @@
                       "estadoSaga": "EM_ANDAMENTO",
                       "pagamento": {
                         "status": "AGUARDANDO_RECEBIMENTO"
+                      },
+                      "_links": {
+                        "self": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "edital": {
+                          "href": "/prefeitura/api/v1/editais/00000003-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        }
                       }
                     }
                   ],
@@ -2395,7 +2409,7 @@
         ],
         "operationId": "prefeitura_obterCompra",
         "summary": "Consultar estado autoritativo da compra",
-        "description": "BFF prefeitura: papéis gestor, escola. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: gestor, escola, produtor. Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura. PENDENTE durante execução e compensação; CANCELADA somente após compensações confirmadas.",
+        "description": "BFF prefeitura: papéis gestor, escola. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: gestor, escola, produtor. Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura. PENDENTE durante execução e compensação; CANCELADA somente após compensações confirmadas.  HATEOAS: self e acompanhamento para todo ator autorizado; liberacao-pagamento somente se RECEBIDA, liberação existente e papel gestor ou produtor. Escola nunca recebe esse link. Não adiciona links de outros serviços. Location e href internos são reescritos para /prefeitura/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço. Apresentação adaptada por cliente. Estado e vínculos autoritativos vêm de Compra; contexto histórico vem dos snapshots; entrega/data/updatedAt vêm da projeção. Links de ação exigem revalidação do recurso dono. Na rota acompanhamento, ausência de projeção é 503; na consulta principal, pode-se retornar o estado autoritativo omitindo entrega/updatedAt. Falha ao decidir ação não permite inferir permissão da projeção.",
         "x-papeis": [
           "gestor",
           "escola"
@@ -2457,7 +2471,25 @@
                       "pagamento": {
                         "status": "AGUARDANDO_RECEBIMENTO"
                       },
-                      "updatedAt": "2026-10-20T10:00:00-03:00"
+                      "updatedAt": "2026-10-20T10:00:00-03:00",
+                      "_links": {
+                        "self": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "edital": {
+                          "href": "/prefeitura/api/v1/editais/00000003-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "entrega": {
+                          "href": "/prefeitura/api/v1/entregas/00000015-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        }
+                      }
                     }
                   },
                   "pendente": {
@@ -2486,7 +2518,21 @@
                       "pagamento": {
                         "status": "AGUARDANDO_RECEBIMENTO"
                       },
-                      "updatedAt": "2026-10-20T10:00:00-03:00"
+                      "updatedAt": "2026-10-20T10:00:00-03:00",
+                      "_links": {
+                        "self": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "edital": {
+                          "href": "/prefeitura/api/v1/editais/00000003-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        }
+                      }
                     }
                   },
                   "recebida": {
@@ -2520,7 +2566,29 @@
                       "pagamento": {
                         "status": "LIBERADO"
                       },
-                      "updatedAt": "2026-11-25T10:30:00-03:00"
+                      "updatedAt": "2026-11-25T10:30:00-03:00",
+                      "_links": {
+                        "self": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "edital": {
+                          "href": "/prefeitura/api/v1/editais/00000003-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "entrega": {
+                          "href": "/prefeitura/api/v1/entregas/00000015-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "liberacao-pagamento": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001/liberacao-pagamento",
+                          "method": "GET"
+                        }
+                      }
                     }
                   },
                   "escola": {
@@ -2554,7 +2622,29 @@
                       "pagamento": {
                         "status": "AGUARDANDO_RECEBIMENTO"
                       },
-                      "updatedAt": "2026-10-20T10:00:00-03:00"
+                      "updatedAt": "2026-10-20T10:00:00-03:00",
+                      "_links": {
+                        "self": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "edital": {
+                          "href": "/prefeitura/api/v1/editais/00000003-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "entrega": {
+                          "href": "/prefeitura/api/v1/entregas/00000015-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "confirmar-recebimento": {
+                          "href": "/prefeitura/api/v1/entregas/00000015-0000-4000-8000-000000000001/recebimentos",
+                          "method": "POST"
+                        }
+                      }
                     }
                   },
                   "escolaRecebida": {
@@ -2588,7 +2678,25 @@
                       "pagamento": {
                         "status": "LIBERADO"
                       },
-                      "updatedAt": "2026-11-25T10:30:00-03:00"
+                      "updatedAt": "2026-11-25T10:30:00-03:00",
+                      "_links": {
+                        "self": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "edital": {
+                          "href": "/prefeitura/api/v1/editais/00000003-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "entrega": {
+                          "href": "/prefeitura/api/v1/entregas/00000015-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        }
+                      }
                     }
                   }
                 }
@@ -2641,7 +2749,7 @@
         ],
         "operationId": "prefeitura_obterAcompanhamento",
         "summary": "Consultar projeção de acompanhamento",
-        "description": "BFF prefeitura: papéis gestor, escola. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: gestor, escola, produtor. Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura. Autoriza pelo modelo de escrita antes de ler a projeção. Meta de atraso de 5 s, ainda não medida. Compra existente sem projeção inicial: 503 com Retry-After; compra inexistente: 404. updatedAt indica instante da projeção, não garantia de atualidade. Campo entrega é omitido até haver agendamento. Location e href internos são reescritos para /prefeitura/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço. Apresentação adaptada por cliente. Estado e vínculos autoritativos vêm de Compra; contexto histórico vem dos snapshots; entrega/data/updatedAt vêm da projeção.",
+        "description": "BFF prefeitura: papéis gestor, escola. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: gestor, escola, produtor. Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura. Autoriza pelo modelo de escrita antes de ler a projeção. Meta de atraso de 5 s, ainda não medida. Compra existente sem projeção inicial: 503 com Retry-After; compra inexistente: 404. updatedAt indica instante da projeção, não garantia de atualidade. Campo entrega é omitido até haver agendamento. Location e href internos são reescritos para /prefeitura/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço. Apresentação adaptada por cliente. Estado e vínculos autoritativos vêm de Compra; contexto histórico vem dos snapshots; entrega/data/updatedAt vêm da projeção. Links de ação exigem revalidação do recurso dono. Na rota acompanhamento, ausência de projeção é 503; na consulta principal, pode-se retornar o estado autoritativo omitindo entrega/updatedAt. Falha ao decidir ação não permite inferir permissão da projeção.",
         "x-papeis": [
           "gestor",
           "escola"
@@ -2703,7 +2811,25 @@
                       "pagamento": {
                         "status": "AGUARDANDO_RECEBIMENTO"
                       },
-                      "updatedAt": "2026-10-20T10:00:00-03:00"
+                      "updatedAt": "2026-10-20T10:00:00-03:00",
+                      "_links": {
+                        "self": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "edital": {
+                          "href": "/prefeitura/api/v1/editais/00000003-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "entrega": {
+                          "href": "/prefeitura/api/v1/entregas/00000015-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        }
+                      }
                     }
                   },
                   "pendente": {
@@ -2732,7 +2858,21 @@
                       "pagamento": {
                         "status": "AGUARDANDO_RECEBIMENTO"
                       },
-                      "updatedAt": "2026-10-20T10:00:00-03:00"
+                      "updatedAt": "2026-10-20T10:00:00-03:00",
+                      "_links": {
+                        "self": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "edital": {
+                          "href": "/prefeitura/api/v1/editais/00000003-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        }
+                      }
                     }
                   },
                   "recebida": {
@@ -2766,7 +2906,29 @@
                       "pagamento": {
                         "status": "LIBERADO"
                       },
-                      "updatedAt": "2026-11-25T10:30:00-03:00"
+                      "updatedAt": "2026-11-25T10:30:00-03:00",
+                      "_links": {
+                        "self": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "edital": {
+                          "href": "/prefeitura/api/v1/editais/00000003-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "entrega": {
+                          "href": "/prefeitura/api/v1/entregas/00000015-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "liberacao-pagamento": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001/liberacao-pagamento",
+                          "method": "GET"
+                        }
+                      }
                     }
                   },
                   "escola": {
@@ -2800,7 +2962,29 @@
                       "pagamento": {
                         "status": "AGUARDANDO_RECEBIMENTO"
                       },
-                      "updatedAt": "2026-10-20T10:00:00-03:00"
+                      "updatedAt": "2026-10-20T10:00:00-03:00",
+                      "_links": {
+                        "self": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "edital": {
+                          "href": "/prefeitura/api/v1/editais/00000003-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "entrega": {
+                          "href": "/prefeitura/api/v1/entregas/00000015-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "confirmar-recebimento": {
+                          "href": "/prefeitura/api/v1/entregas/00000015-0000-4000-8000-000000000001/recebimentos",
+                          "method": "POST"
+                        }
+                      }
                     }
                   },
                   "escolaRecebida": {
@@ -2834,7 +3018,25 @@
                       "pagamento": {
                         "status": "LIBERADO"
                       },
-                      "updatedAt": "2026-11-25T10:30:00-03:00"
+                      "updatedAt": "2026-11-25T10:30:00-03:00",
+                      "_links": {
+                        "self": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/prefeitura/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "edital": {
+                          "href": "/prefeitura/api/v1/editais/00000003-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "entrega": {
+                          "href": "/prefeitura/api/v1/entregas/00000015-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        }
+                      }
                     }
                   }
                 }
@@ -5574,6 +5776,131 @@
           "paginacao"
         ]
       },
+      "Links": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "self": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "href": {
+                "type": "string",
+                "format": "uri-reference",
+                "pattern": "^/prefeitura/api/v1/"
+              },
+              "method": {
+                "type": "string",
+                "const": "GET"
+              }
+            },
+            "required": [
+              "href",
+              "method"
+            ]
+          },
+          "acompanhamento": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "href": {
+                "type": "string",
+                "format": "uri-reference",
+                "pattern": "^/prefeitura/api/v1/"
+              },
+              "method": {
+                "type": "string",
+                "const": "GET"
+              }
+            },
+            "required": [
+              "href",
+              "method"
+            ]
+          },
+          "edital": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "href": {
+                "type": "string",
+                "format": "uri-reference",
+                "pattern": "^/prefeitura/api/v1/"
+              },
+              "method": {
+                "type": "string",
+                "const": "GET"
+              }
+            },
+            "required": [
+              "href",
+              "method"
+            ]
+          },
+          "entrega": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "href": {
+                "type": "string",
+                "format": "uri-reference",
+                "pattern": "^/prefeitura/api/v1/"
+              },
+              "method": {
+                "type": "string",
+                "const": "GET"
+              }
+            },
+            "required": [
+              "href",
+              "method"
+            ]
+          },
+          "liberacao-pagamento": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "href": {
+                "type": "string",
+                "format": "uri-reference",
+                "pattern": "^/prefeitura/api/v1/"
+              },
+              "method": {
+                "type": "string",
+                "const": "GET"
+              }
+            },
+            "required": [
+              "href",
+              "method"
+            ]
+          },
+          "confirmar-recebimento": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "href": {
+                "type": "string",
+                "format": "uri-reference",
+                "pattern": "^/prefeitura/api/v1/"
+              },
+              "method": {
+                "type": "string",
+                "const": "POST"
+              }
+            },
+            "required": [
+              "href",
+              "method"
+            ]
+          }
+        },
+        "required": [
+          "self",
+          "acompanhamento",
+          "edital"
+        ]
+      },
       "Referencia": {
         "type": "object",
         "additionalProperties": false,
@@ -5662,6 +5989,9 @@
           "quantidade": {
             "$ref": "#/components/schemas/ComprasQuantidade"
           },
+          "_links": {
+            "$ref": "#/components/schemas/Links"
+          },
           "edital": {
             "$ref": "#/components/schemas/EditalReferencia"
           },
@@ -5696,6 +6026,7 @@
           "compraId",
           "status",
           "quantidade",
+          "_links",
           "edital",
           "produtor",
           "escola",
