@@ -8,6 +8,7 @@ Cada ADR registra **contexto**, **decisão**, **alternativas consideradas** e **
 | [0002](0002-postgresql-por-servico.md) | PostgreSQL com uma instância por serviço | Aceito |
 | [0003](0003-cqrs-em-compras.md) | CQRS em Compras com a projeção `AcompanhamentoCompra` | Aceito |
 | [0004](0004-outbox-transacional.md) | Outbox transacional com inbox idempotente | Aceito |
+| [0005](0005-saga-orquestrada.md) | SAGA orquestrada por Compras para confirmar compra | Aceito |
 
 ## Como registrar uma nova decisão
 
