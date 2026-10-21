@@ -154,3 +154,61 @@ Aplicativo, consultado pelo produtor da compra:
 ```
 
 Esses trechos mostram os campos de negócio; a representação completa também exige `_links`. Histórico de transições não é inventado pelo BFF: os serviços atuais não o expõem por HTTP. A versão do portal preserva mais contexto e estado atual; uma futura linha do tempo precisa de contrato próprio do dono.
+
+## 5. HATEOAS no recurso Compra
+
+O contrato [Compras 1.1.0](openapi/compras.openapi.json) acrescenta `_links` à resposta de Compra, conforme responsabilidade já prevista no projeto. O serviço só monta links de seus recursos; BFFs reescrevem o prefixo e acrescentam relações com outros serviços.
+
+| Relação | Quem produz | Condição |
+|---|---|---|
+| `self` | Compras; BFF reescreve | Todo ator autorizado a consultar a compra |
+| `acompanhamento` | Compras; BFF reescreve | Todo ator autorizado; a projeção pode ainda estar indisponível |
+| `liberacao-pagamento` | Compras; BFF reescreve | Compra `RECEBIDA`, liberação existente e papel `gestor` ou `produtor`; escola não recebe |
+| `edital` | BFF | Referência de edital autorizada para o ator |
+| `entrega` | BFF | Entrega identificada e leitura autorizada; ausente antes do agendamento |
+| `confirmar-recebimento` | Somente BFF prefeitura | Papel `escola`, `instituicaoId == escolaId` autoritativo e entrega atualmente `AGENDADA`; para Compra confirmada |
+
+Links usam `href` relativo à origem do gateway e `method` explícito. Na API interna começam em `/api/v1`; externamente começam em `/prefeitura/api/v1` ou `/produtor/api/v1`. O BFF aceita apenas relações e caminhos internos previstos, impedindo que um link de origem desconhecida seja transformado em destino arbitrário.
+
+Para decidir uma ação, o BFF consulta a Compra autoritativa e, quando aplicável, Entregas. Não usa snapshot do nome da escola ou projeção possivelmente atrasada para conceder permissão. A confirmação volta a ser validada por Entregas no POST, porque o estado pode mudar entre leitura e ação. Falha da consulta decisiva resulta em `503` ou omissão da ação na consulta principal, jamais criação otimista de link de ação; a resposta do acompanhamento exige suas fontes necessárias.
+
+| Cenário | Recebe confirmação? | Recebe liberação? |
+|---|---|---|
+| Gestor da prefeitura, compra confirmada e entrega agendada | Não | Não |
+| Escola vinculada, compra confirmada e entrega agendada | Sim, apenas no portal | Não |
+| Escola vinculada, entrega já recebida/cancelada | Não | Não |
+| Outra escola ou produtor de outra compra | Resposta `403`; sem representação | Resposta `403` |
+| Produtor da compra, confirmada | Não | Não |
+| Gestor/produtor autorizado, compra recebida e liberação registrada | Não | Sim |
+| Compra pendente ou cancelada | Não | Não |
+
+Exemplo do link de ação no portal da escola:
+
+```json
+{
+  "confirmar-recebimento": {
+    "href": "/prefeitura/api/v1/entregas/00000015-0000-4000-8000-000000000001/recebimentos",
+    "method": "POST"
+  }
+}
+```
+
+O cliente envia `{}` e `Idempotency-Key` no POST. O servidor gera ator e instante. Recebimento e `EntregaRecebida` são persistidos na mesma transação local de Entregas; a atualização de Compra e liberação ocorre depois, via consumidor. Repetição não autoriza um segundo recebimento ou pagamento.
+
+## 6. Idempotência, erro e compatibilidade
+
+Valem os [padrões REST](openapi/README.md): erro com quatro campos, UUID, valores decimais exatos, controle de versão e chaves HTTP distintas de IDs de mensagem/SAGA. O BFF preserva a chave em retransmissões para a mesma operação interna e não divide uma ação do cliente em várias escritas independentes.
+
+O BFF não memoriza uma resposta de escrita antes de o domínio concluir a transação. Depois de uma perda de resposta, o reenvio da mesma chave recupera o resultado original; o cliente usa GET para consultar o estado atual. Uma resposta idempotente antiga não é reapresentada como estado novo. `Location` é reescrita junto do resultado.
+
+Os BFFs usam seus prefixos `/api/v1` e versões documentais próprias. Compras mudou `info.version` para 1.1.0 pela representação HATEOAS prevista no projeto, sem alterar nome de estado ou caminho. Clientes que validam respostas com schema fechado precisam atualizar seu contrato ao receber `_links`; isso exige atualizar os consumidores afetados.
+
+## 8. Referências técnicas
+
+- [NGINX auth_request](https://nginx.org/en/docs/http/ngx_http_auth_request_module.html): subrequests de autorização e códigos aceitos.
+- [NGINX proxy_pass](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass): substituição de prefixo quando uma URI é informada.
+- [NGINX limit_req](https://nginx.org/en/docs/http/ngx_http_limit_req_module.html): limites por chave.
+- [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html): ETag, If-None-Match, 304 e semântica HTTP.
+- [RFC 7519](https://www.rfc-editor.org/rfc/rfc7519.html) e [RFC 8725](https://www.rfc-editor.org/rfc/rfc8725.html): claims e validação de JWT.
+
+Taxas, TTLs, limites de composição, cache técnico e regras de payload são escolhas propostas do CampoConecta. As regras de integração propostas nos ADRs precisam ser confirmadas antes da implementação.

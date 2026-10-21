@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "CampoConecta — Compras",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Contrato da API interna do CampoConecta, consumida pelos BFFs. Convenções em README.md e regras de integração propostas no ADR 0006. Componentes ainda não implantados."
   },
   "servers": [
@@ -1113,7 +1113,17 @@
                         "produto": "Arroz",
                         "snapshotAt": "2026-10-20T10:00:00-03:00"
                       },
-                      "versao": 1
+                      "versao": 1,
+                      "_links": {
+                        "self": {
+                          "href": "/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        }
+                      }
                     }
                   ],
                   "paginacao": {
@@ -1148,7 +1158,7 @@
         ],
         "operationId": "obterCompra",
         "summary": "Consultar estado autoritativo da compra",
-        "description": "Papéis permitidos: gestor, escola, produtor. Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura. PENDENTE durante execução e compensação; CANCELADA somente após compensações confirmadas.",
+        "description": "Papéis permitidos: gestor, escola, produtor. Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura. PENDENTE durante execução e compensação; CANCELADA somente após compensações confirmadas.  HATEOAS: self e acompanhamento para todo ator autorizado; liberacao-pagamento somente se RECEBIDA, liberação existente e papel gestor ou produtor. Escola nunca recebe esse link. Não adiciona links de outros serviços.",
         "x-papeis": [
           "gestor",
           "escola",
@@ -1213,7 +1223,17 @@
                         "produto": "Arroz",
                         "snapshotAt": "2026-10-20T10:00:00-03:00"
                       },
-                      "versao": 1
+                      "versao": 1,
+                      "_links": {
+                        "self": {
+                          "href": "/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        }
+                      }
                     }
                   },
                   "recebida": {
@@ -1248,7 +1268,21 @@
                         "produto": "Arroz",
                         "snapshotAt": "2026-10-20T10:00:00-03:00"
                       },
-                      "versao": 1
+                      "versao": 1,
+                      "_links": {
+                        "self": {
+                          "href": "/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "liberacao-pagamento": {
+                          "href": "/api/v1/compras/00000010-0000-4000-8000-000000000001/liberacao-pagamento",
+                          "method": "GET"
+                        }
+                      }
                     }
                   }
                 }
@@ -2082,6 +2116,9 @@
           },
           "versao": {
             "$ref": "#/components/schemas/Versao"
+          },
+          "_links": {
+            "$ref": "#/components/schemas/LinksCompra"
           }
         },
         "required": [
@@ -2098,7 +2135,8 @@
           "status",
           "estadoSaga",
           "snapshot",
-          "versao"
+          "versao",
+          "_links"
         ],
         "examples": [
           {
@@ -2131,7 +2169,17 @@
               "produto": "Arroz",
               "snapshotAt": "2026-10-20T10:00:00-03:00"
             },
-            "versao": 1
+            "versao": 1,
+            "_links": {
+              "self": {
+                "href": "/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                "method": "GET"
+              },
+              "acompanhamento": {
+                "href": "/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                "method": "GET"
+              }
+            }
           }
         ]
       },
@@ -2396,6 +2444,44 @@
         "required": [
           "items",
           "paginacao"
+        ]
+      },
+      "LinkCompra": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "href": {
+            "type": "string",
+            "format": "uri-reference",
+            "pattern": "^/api/v1/compras/[0-9a-f-]+(/acompanhamento|/liberacao-pagamento)?$"
+          },
+          "method": {
+            "type": "string",
+            "const": "GET"
+          }
+        },
+        "required": [
+          "href",
+          "method"
+        ]
+      },
+      "LinksCompra": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "self": {
+            "$ref": "#/components/schemas/LinkCompra"
+          },
+          "acompanhamento": {
+            "$ref": "#/components/schemas/LinkCompra"
+          },
+          "liberacao-pagamento": {
+            "$ref": "#/components/schemas/LinkCompra"
+          }
+        },
+        "required": [
+          "self",
+          "acompanhamento"
         ]
       }
     },
