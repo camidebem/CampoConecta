@@ -2,7 +2,7 @@
 
 - **Status:** aceito
 - **Data:** 2026-10-20
-- **Decisores:** equipe CampoConecta (frente de SAGA e mensagens)
+- **Decisores:** equipe CampoConecta
 - **Relacionados:** [`05-saga.md`](../parte2/05-saga.md), [`06-mensagens.md`](../parte2/06-mensagens.md), [`ADR 0001`](./0001-quatro-servicos-de-dominio.md), [`ADR 0004`](./0004-outbox-transacional.md)
 
 ## Contexto
