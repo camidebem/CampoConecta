@@ -100,7 +100,7 @@ stateDiagram-v2
     [*] --> EM_ANDAMENTO: Compra criada
     EM_ANDAMENTO --> EM_ANDAMENTO: passo confirmado
     EM_ANDAMENTO --> CONCLUIDA: EntregaAgendada
-    EM_ANDAMENTO --> COMPENSANDO: rejeição em passo com efeitos anteriores
+    EM_ANDAMENTO --> COMPENSANDO: rejeição com efeitos anteriores ou tentativas esgotadas
     EM_ANDAMENTO --> CANCELADA: AlocacaoDemandaRejeitada (nada a desfazer)
     COMPENSANDO --> COMPENSANDO: compensação confirmada ou repetida
     COMPENSANDO --> CANCELADA: todas as compensações confirmadas
@@ -121,6 +121,7 @@ stateDiagram-v2
 | `COMPENSANDO` | `LIBERAR_OFERTA` | `OfertaLiberada` | Envia `LiberarDemanda` | `COMPENSANDO` | `PENDENTE` |
 | `COMPENSANDO` | `LIBERAR_DEMANDA` | `DemandaLiberada` | Encerra; publica `CompraCancelada` | `CANCELADA` | `CANCELADA` |
 | qualquer | qualquer | timeout do passo | Reenvia o mesmo comando com o mesmo `operationId` (seção 9) | inalterado | inalterado |
+| `EM_ANDAMENTO` | qualquer | tentativas esgotadas sem resposta | Compensa os passos confirmados **e** o passo com resultado desconhecido (seção 9) | `COMPENSANDO` | `PENDENTE` |
 | `CONCLUIDA` ou `CANCELADA` | — | resposta duplicada | Descartada pela inbox | inalterado | inalterado |
 
 ## 6. Passos e compensações
@@ -254,3 +255,83 @@ sequenceDiagram
 | Agendamento rejeitado | `AgendamentoRejeitado` no passo 3 | Demanda e oferta | `LiberarOferta` → `OfertaLiberada`, depois `LiberarDemanda` → `DemandaLiberada` | SAGA e Compra `CANCELADA` após as duas liberações (diagrama acima) |
 
 Os dois primeiros casos seguem o mesmo padrão do diagrama, com menos passos.
+
+## 9. Falhas técnicas: duplicação, timeout, resposta tardia e reinício
+
+As rejeições da seção 8 são respostas de negócio. Esta seção trata do que acontece quando a infraestrutura falha: mensagem repetida, resposta que não chega, resposta que chega tarde demais, processo que reinicia e compensação que não consegue ser aplicada.
+
+O broker entrega cada mensagem **pelo menos uma vez** e não garante ordem global. A SAGA não depende de entrega exatamente uma vez: depende de idempotência em cada ponta.
+
+### 9.1 Mensagem duplicada
+
+| Onde | Proteção |
+|---|---|
+| Participante (Editais, Ofertas, Entregas) | Inbox por `messageId` na mesma transação dos efeitos; além disso, unicidade de negócio por `(compraId, operationId)`. Um comando repetido devolve **a resposta original** (sucesso ou rejeição), sem aplicar o efeito de novo |
+| Orquestrador (Compras) | Inbox por `messageId`. Uma resposta cujo `operationId` já tem resultado em `saga_passo` é descartada, mesmo que chegue com outro `messageId` (reenvio do participante) |
+| Projeção de leitura | Inbox e `versao` por agregado: evento antigo ou repetido não regride o estado (ver [`03-cqrs.md`](./03-cqrs.md)) |
+
+### 9.2 Timeout com resultado desconhecido
+
+Quando o prazo de resposta de um passo vence, o orquestrador **não sabe** se o comando foi aplicado: a mensagem pode ter se perdido na ida, o participante pode estar fora do ar ou a resposta pode ter se perdido na volta. Por isso, timeout **não é tratado como falha**.
+
+1. Uma rotina de Compras busca SAGAs `EM_ANDAMENTO` ou `COMPENSANDO` com `prazo_resposta` vencido.
+2. Para cada uma, reenvia **o mesmo comando, com o mesmo `operationId`**, incrementa `tentativas` e recalcula o prazo com backoff exponencial.
+3. Se o participante já tinha aplicado o comando, a unicidade por `operationId` faz com que ele apenas repita a resposta original. Se não tinha, aplica agora. Em nenhum caso o efeito é duplicado.
+4. Se as tentativas se esgotarem sem resposta, a SAGA passa a `COMPENSANDO` e compensa **os passos confirmados e também o passo com resultado desconhecido**. Por exemplo: timeout esgotado em `AgendarEntrega` leva a `CancelarAgendamento`, `LiberarOferta` e `LiberarDemanda`, nessa ordem.
+
+Compensar um passo de resultado desconhecido é seguro porque as compensações são idempotentes: se o efeito existe, é desfeito; se nunca existiu, o participante apenas registra a operação como cancelada e responde com sucesso (ver 9.3).
+
+| Parâmetro | Valor de referência |
+|---|---|
+| Prazo da primeira resposta | 30 s |
+| Backoff entre reenvios | Exponencial: 30 s, 1 min, 2 min, 4 min, 8 min |
+| Tentativas antes de compensar | 5 (cerca de 15 min no total) |
+
+Os valores são parâmetros de configuração propostos para o projeto, ainda não medidos; serão ajustados na implementação.
+
+### 9.3 Resposta ou comando tardio
+
+Dois casos precisam de tratamento explícito:
+
+**a) A compensação chega ao participante antes do comando original.** Exemplo: o orquestrador esgotou as tentativas de `AgendarEntrega`, enviou `CancelarAgendamento`, e só depois o `AgendarEntrega` original (atrasado no broker) chega a Entregas.
+
+- Ao receber `CancelarAgendamento` sem agendamento existente para aquele `operationId`, Entregas grava a operação como `CANCELADA` (um registro que marca a operação como encerrada) e responde `AgendamentoCancelado`.
+- Quando o `AgendarEntrega` atrasado chega, Entregas encontra a operação já `CANCELADA` e **não cria** o agendamento; responde `AgendamentoRejeitado` com motivo `OPERACAO_CANCELADA`.
+- A mesma regra vale para `LiberarDemanda` antes de `AlocarDemanda` e para `LiberarOferta` antes de `ReservarOferta`.
+
+**b) Uma resposta de sucesso chega ao orquestrador depois de ele ter decidido compensar.** Exemplo: `EntregaAgendada` chega com a SAGA já em `COMPENSANDO`.
+
+- O orquestrador registra o resultado em `saga_passo`, mas **não** volta a avançar a SAGA.
+- Como o efeito agora é conhecido, ele garante que a compensação desse passo (`CancelarAgendamento`) esteja enviada e confirmada antes de marcar a Compra como `CANCELADA`.
+- Respostas para SAGAs já `CONCLUIDA` ou `CANCELADA` são descartadas e registradas em log para auditoria.
+
+### 9.4 Reinício de processo
+
+| Quem reinicia | O que acontece |
+|---|---|
+| Orquestrador (Compras) | Não há estado em memória. Ao subir, a rotina de timeouts lê `saga_compra` e retoma cada SAGA pela `etapa_atual` e pelo `prazo_resposta`. Comandos já gravados no outbox são publicados pelo relay |
+| Participante | Mensagem recebida e não confirmada é reentregue pelo broker. Se o processo caiu antes do `COMMIT`, nada foi aplicado e o comando é processado do zero; se caiu depois, a inbox reconhece a repetição |
+| Relay do outbox | Linhas não marcadas como publicadas são publicadas de novo; os consumidores deduplicam (ver [`02-dados-outbox.md`](./02-dados-outbox.md)) |
+
+### 9.5 Compensação que não consegue concluir
+
+Compensações não são rejeitadas por regra de negócio (seção 6), mas o participante pode estar indisponível por muito tempo. Nesse caso:
+
+1. A SAGA **permanece em `COMPENSANDO`** e a Compra em `PENDENTE`. Nunca se marca `CANCELADA` enquanto houver efeito conhecido não desfeito.
+2. A compensação é reenviada com o mesmo `operationId` e backoff exponencial, como na seção 9.2. Esgotadas as tentativas rápidas, passa a ser repetida em uma janela mais longa (por exemplo, uma vez por hora).
+3. A SAGA é registrada como **pendência de compensação**, visível para operação e para o gestor no acompanhamento da compra (estado `PENDENTE` com etapa de compensação).
+4. Mensagens que falham repetidamente no consumidor vão para a fila de mensagens mortas (DLQ), com alerta.
+5. Se o problema exigir intervenção (por exemplo, dado corrompido), um operador corrige a causa e reenfileira a compensação. A correção usa a mesma operação de negócio idempotente; não há edição manual direta em banco de outro serviço.
+
+Enquanto a compensação está pendente, o recurso continua reservado: o saldo do edital ou da oferta fica bloqueado para outras compras. É uma escolha deliberada: preferimos atrasar a liberação a correr o risco de vender a mesma produção duas vezes.
+
+### 9.6 Resumo
+
+| Falha | Tratamento | Garantia |
+|---|---|---|
+| Mensagem duplicada | Inbox + unicidade por `(compraId, operationId)` | Efeito aplicado uma única vez |
+| Timeout | Reenvio com mesmo `operationId` e backoff; compensação após esgotar | Nenhuma falha presumida; nenhum efeito duplicado |
+| Comando atrasado após compensação | Operação marcada `CANCELADA` no participante | Reserva ou agendamento não é recriado |
+| Sucesso tardio durante compensação | Orquestrador compensa também esse passo | Nenhum efeito órfão |
+| Reinício | Estado persistido + outbox + reentrega do broker | Retomada do ponto em que parou |
+| Compensação indisponível | `COMPENSANDO` com repetição, pendência e DLQ | Compra não é cancelada com efeito pendente |
