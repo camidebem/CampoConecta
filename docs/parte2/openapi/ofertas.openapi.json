@@ -1,0 +1,1145 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CampoConecta — Ofertas",
+    "version": "1.0.0",
+    "description": "Contrato da API interna do CampoConecta, consumida pelos BFFs. Convenções em README.md e regras de integração propostas no ADR 0006. Componentes ainda não implantados."
+  },
+  "servers": [
+    {
+      "url": "http://ofertas:8000/api/v1",
+      "description": "Endereço interno proposto; porta de referência, sem implantação."
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "produtores",
+      "description": "Recursos produtores de CampoConecta — Ofertas."
+    },
+    {
+      "name": "ofertas",
+      "description": "Recursos ofertas de CampoConecta — Ofertas."
+    },
+    {
+      "name": "reservas",
+      "description": "Recursos reservas de CampoConecta — Ofertas."
+    }
+  ],
+  "paths": {
+    "/produtores": {
+      "post": {
+        "tags": [
+          "produtores"
+        ],
+        "operationId": "criarProdutor",
+        "summary": "Cadastrar produtor",
+        "description": "Papéis permitidos: produtor. O servidor atribui como id o produtorId do token previamente provisionado; cadastro existente: 409. Não permite cadastrar outro produtor.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "O servidor atribui como id o produtorId do token previamente provisionado; cadastro existente: 409. Não permite cadastrar outro produtor.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Recurso criado e persistido.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri-reference"
+                },
+                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Produtor"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Corpo completo conforme schema; campos desconhecidos geram 400.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProdutorCriacao"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/produtores/{id}": {
+      "get": {
+        "tags": [
+          "produtores"
+        ],
+        "operationId": "obterProdutor",
+        "summary": "Consultar produtor",
+        "description": "Papéis permitidos: produtor. Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Produtor"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "produtores"
+        ],
+        "operationId": "ajustarProdutor",
+        "summary": "Atualizar cadastro do produtor",
+        "description": "Papéis permitidos: produtor. Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo. Documento imutável. Inativar impede novas ofertas/propostas/reservas, preservando compromissos existentes. Versão diferente: 409.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Produtor"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Corpo completo conforme schema; campos desconhecidos geram 400.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProdutorAjuste"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ofertas": {
+      "post": {
+        "tags": [
+          "ofertas"
+        ],
+        "operationId": "criarOferta",
+        "summary": "Criar oferta",
+        "description": "Papéis permitidos: produtor. Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo. Produtor deve estar ativo.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Recurso criado e persistido.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri-reference"
+                },
+                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Oferta"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Corpo completo conforme schema; campos desconhecidos geram 400.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfertaCriacao"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "ofertas"
+        ],
+        "operationId": "listarOfertas",
+        "summary": "Listar ofertas",
+        "description": "Papéis permitidos: produtor. Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo. Ordenação estável por id ascendente. Filtros combinados com AND; autorização aplicada antes de contar/paginar.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/Pagina"
+          },
+          {
+            "$ref": "#/components/parameters/Tamanho"
+          },
+          {
+            "name": "ativa",
+            "in": "query",
+            "required": false,
+            "description": "Situação da oferta.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "produto",
+            "in": "query",
+            "required": false,
+            "description": "Igualdade do nome do produto.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Nome de produto."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListarOfertasPagina"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        }
+      }
+    },
+    "/ofertas/{id}": {
+      "get": {
+        "tags": [
+          "ofertas"
+        ],
+        "operationId": "obterOferta",
+        "summary": "Consultar oferta",
+        "description": "Papéis permitidos: produtor. Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo. Compras usa esta consulta com identidade do produtor propagada para validar a proposta.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Oferta"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "ofertas"
+        ],
+        "operationId": "ajustarOferta",
+        "summary": "Atualizar saldo livre ou situação",
+        "description": "Papéis permitidos: produtor. Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo. Versão inclui mudanças por reserva/liberação; edição e reserva concorrentes resultam em 409 para edição desatualizada. O saldo informado é absoluto, não incremento.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Oferta"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Corpo completo conforme schema; campos desconhecidos geram 400.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfertaAjuste"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reservas/{id}": {
+      "get": {
+        "tags": [
+          "reservas"
+        ],
+        "operationId": "obterReserva",
+        "summary": "Consultar reserva",
+        "description": "Papéis permitidos: produtor. Somente o produtor dono da oferta associada à reserva. Criar/liberar reservas só por comandos internos da SAGA; não há POST público de reserva.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Somente o produtor dono da oferta associada à reserva.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reserva"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT OIDC propagado internamente. Claims: sub, papel (gestor/escola/produtor), instituicaoId ou produtorId. Autenticação não substitui autorização por recurso."
+      }
+    },
+    "schemas": {
+      "Quantidade": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "valor": {
+            "type": "string",
+            "pattern": "^(0\\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,11}\\.[0-9]{2})$",
+            "description": "Decimal exato estritamente positivo, com duas casas."
+          },
+          "unidade": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20,
+            "description": "Unidade compatível com o item/oferta; conversão implícita é proibida."
+          }
+        },
+        "required": [
+          "valor",
+          "unidade"
+        ]
+      },
+      "Saldo": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "valor": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,11})\\.[0-9]{2}$",
+            "description": "Decimal exato não negativo, com duas casas, transmitido como string. Não usar float."
+          },
+          "unidade": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20,
+            "description": "Mesma unidade da quantidade original."
+          }
+        },
+        "required": [
+          "valor",
+          "unidade"
+        ]
+      },
+      "Erro": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Código estável legível por máquina."
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Mensagem sem detalhes internos."
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "campo": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Caminho do campo ou contexto."
+                },
+                "motivo": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Motivo do erro."
+                }
+              },
+              "required": [
+                "campo",
+                "motivo"
+              ]
+            },
+            "minItems": 0
+          },
+          "correlationId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "details",
+          "correlationId"
+        ]
+      },
+      "Paginacao": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "pagina": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "tamanho": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalPaginas": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "pagina",
+          "tamanho",
+          "total",
+          "totalPaginas"
+        ]
+      },
+      "Versao": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "ProdutorCriacao": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Nome do produtor."
+          },
+          "documento": {
+            "type": "string",
+            "pattern": "^([0-9]{11}|[0-9]{14})$",
+            "description": "CPF ou CNPJ sem pontuação, único."
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          }
+        },
+        "required": [
+          "nome",
+          "documento",
+          "email"
+        ]
+      },
+      "Produtor": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Nome do produtor."
+          },
+          "documento": {
+            "type": "string",
+            "pattern": "^([0-9]{11}|[0-9]{14})$",
+            "description": "CPF ou CNPJ sem pontuação, único."
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "ativo": {
+            "type": "boolean"
+          },
+          "versao": {
+            "$ref": "#/components/schemas/Versao"
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "documento",
+          "email",
+          "ativo",
+          "versao"
+        ]
+      },
+      "ProdutorAjuste": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "versao": {
+            "$ref": "#/components/schemas/Versao"
+          },
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Nome atualizado."
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "ativo": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "versao"
+        ],
+        "minProperties": 2
+      },
+      "OfertaCriacao": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "produtorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "produto": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Produto ofertado."
+          },
+          "quantidadeDisponivel": {
+            "$ref": "#/components/schemas/Quantidade"
+          }
+        },
+        "required": [
+          "produtorId",
+          "produto",
+          "quantidadeDisponivel"
+        ]
+      },
+      "Oferta": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "produtorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "produto": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Produto ofertado."
+          },
+          "quantidadeDisponivel": {
+            "$ref": "#/components/schemas/Saldo"
+          },
+          "ativa": {
+            "type": "boolean"
+          },
+          "versao": {
+            "$ref": "#/components/schemas/Versao"
+          }
+        },
+        "required": [
+          "id",
+          "produtorId",
+          "produto",
+          "quantidadeDisponivel",
+          "ativa",
+          "versao"
+        ]
+      },
+      "OfertaAjuste": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "versao": {
+            "$ref": "#/components/schemas/Versao"
+          },
+          "quantidadeDisponivel": {
+            "$ref": "#/components/schemas/Saldo"
+          },
+          "ativa": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "versao"
+        ],
+        "minProperties": 2,
+        "description": "Atualiza só o saldo livre, sem devolver ou consumir reservas existentes. Produto, unidade e produtor são imutáveis; unidade da quantidade deve permanecer igual. Inativação impede novas reservas, preservando compromissos existentes."
+      },
+      "Reserva": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ofertaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "compraId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantidade": {
+            "$ref": "#/components/schemas/Quantidade"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ATIVA",
+              "LIBERADA"
+            ]
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "ofertaId",
+          "compraId",
+          "quantidade",
+          "status",
+          "criadoEm"
+        ]
+      },
+      "ListarOfertasPagina": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Oferta"
+            },
+            "minItems": 0
+          },
+          "paginacao": {
+            "$ref": "#/components/schemas/Paginacao"
+          }
+        },
+        "required": [
+          "items",
+          "paginacao"
+        ]
+      }
+    },
+    "parameters": {
+      "Id": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "UUID do recurso no caminho.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "CorrelationId": {
+        "name": "X-Correlation-Id",
+        "in": "header",
+        "required": false,
+        "description": "UUID de rastreamento; gerado se ausente e devolvido na resposta.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "description": "UUID gerado pelo cliente. Escopo: sub autenticado + método + caminho normalizado. Reenvio idêntico retorna status/corpo/Location originais; conteúdo diferente ou operação ainda em curso: 409. Retenção mínima proposta: 30 dias.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "Pagina": {
+        "name": "pagina",
+        "in": "query",
+        "description": "Página iniciada em 1; além da última retorna items vazio.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        }
+      },
+      "Tamanho": {
+        "name": "tamanho",
+        "in": "query",
+        "description": "Limite de itens por página; valores fora do intervalo geram 400.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 20
+        }
+      }
+    },
+    "responses": {
+      "Erro400": {
+        "description": "Corpo, parâmetro ou cabeçalho inválido, ausente ou não suportado.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            }
+          }
+        }
+      },
+      "Erro401": {
+        "description": "Token ausente, expirado ou inválido.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          },
+          "WWW-Authenticate": {
+            "schema": {
+              "type": "string"
+            },
+            "description": "Desafio de autenticação Bearer."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            }
+          }
+        }
+      },
+      "Erro403": {
+        "description": "Papel ou vínculo não autoriza esta operação.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            }
+          }
+        }
+      },
+      "Erro404": {
+        "description": "Recurso identificado não existe.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            }
+          }
+        }
+      },
+      "Erro409": {
+        "description": "Estado, versão, unicidade, vínculo de negócio ou chave idempotente em conflito.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            }
+          }
+        }
+      },
+      "Erro503": {
+        "description": "Dependência necessária indisponível. Não é garantia de ausência de efeito após perda da resposta; repetir com a mesma chave.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          },
+          "Retry-After": {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Espera sugerida, em segundos, antes da repetição."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            }
+          }
+        }
+      }
+    }
+  }
+}
