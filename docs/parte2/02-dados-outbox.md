@@ -59,7 +59,7 @@ Os esquemas abaixo são o **modelo conceitual** acordado entre as frentes; nomes
 | `plano_alocacao` | `id`, `edital_id`, `gestor_id`, `criterios_snapshot`, `status`, `versao` | `status`: `SUGERIDO`, `HOMOLOGADO` |
 | `plano_item` | `id`, `plano_id`, `proposta_id`, `quantidade`, `status`, `compra_id` | `status`: `PENDENTE`, `HOMOLOGADO`, `EXCLUIDO` |
 | `compra` | `id`, `plano_item_id`, `proposta_id`, `edital_id`, `item_edital_id`, `produtor_id`, `escola_id`, snapshots, `status`, `versao` | `status`: `PENDENTE`, `CONFIRMADA`, `RECEBIDA`, `CANCELADA` |
-| `saga_compra` | `id`, `compra_id` (único), `estado`, `passo_atual`, `proximo_comando`, `tentativas`, `versao` | `estado`: `EM_ANDAMENTO`, `COMPENSANDO`, `CONCLUIDA`, `CANCELADA` |
+| `saga_compra` | `id`, `compra_id` (único), `estado`, `passo_atual`, `proximo_comando`, `passos_concluidos`, `motivo_falha`, `tentativas`, `prazo_resposta`, `versao` | `estado`: `EM_ANDAMENTO`, `COMPENSANDO`, `CONCLUIDA`, `CANCELADA` |
 | `saga_operacao` | `id`, `saga_id`, `operation_id` (único), `comando`, `estado`, `resposta`, `atualizado_em` | Registra o resultado por operação, inclusive `DESCONHECIDO` |
 | `liberacao_pagamento` | `id`, `compra_id` (**único**), `valor`, `moeda`, `liberado_em` | `UNIQUE (compra_id)` impede liberação dupla |
 

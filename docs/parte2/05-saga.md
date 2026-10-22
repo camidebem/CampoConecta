@@ -43,25 +43,26 @@ Várias SAGAs podem disputar o mesmo item do edital ou a mesma oferta. A sugest�
 
 ## 4. Estado persistido
 
+As tabelas seguem o modelo de dados de Compras em [`02-dados-outbox.md`](./02-dados-outbox.md), seção 3.3. Aqui estão os campos de que a SAGA precisa.
+
 ### 4.1 Tabela `saga_compra` (banco de Compras)
 
 | Campo | Descrição |
 |---|---|
-| `saga_id` | UUID da SAGA; vai em todas as mensagens como `sagaId` |
-| `compra_id` | Compra coordenada (1:1) |
-| `plano_alocacao_id` | Plano que originou a compra |
+| `id` | UUID da SAGA; vai em todas as mensagens como `sagaId` |
+| `compra_id` | Compra coordenada (único: uma SAGA por compra) |
 | `estado` | `EM_ANDAMENTO`, `COMPENSANDO`, `CONCLUIDA`, `CANCELADA` |
-| `etapa_atual` | `ALOCAR_DEMANDA`, `RESERVAR_OFERTA`, `AGENDAR_ENTREGA`, `CONCLUIR` ou a compensação em curso |
+| `passo_atual` | `ALOCAR_DEMANDA`, `RESERVAR_OFERTA`, `AGENDAR_ENTREGA`, `CONCLUIR` ou a compensação em curso |
+| `proximo_comando` | Comando que o orquestrador deve enviar ou reenviar |
 | `passos_concluidos` | Quais efeitos já foram confirmados (`DEMANDA`, `OFERTA`, `AGENDAMENTO`); define o que compensar |
 | `motivo_falha` | Código da rejeição ou do timeout que iniciou a compensação |
 | `tentativas` | Contador de reenvios do comando atual |
 | `prazo_resposta` | Instante limite para a resposta do passo atual (timeout) |
 | `versao` | Controle de concorrência e ordem dos eventos publicados |
-| `criada_em`, `atualizada_em` | Auditoria |
 
-### 4.2 Tabela `saga_passo` (histórico)
+### 4.2 Tabela `saga_operacao` (resultado por operação)
 
-Uma linha por comando enviado: `saga_id`, `operation_id`, `tipo_comando`, `participante`, `enviado_em`, `respondido_em`, `resultado` (`SUCESSO`, `REJEITADO`, `PENDENTE`). Serve para auditoria, para reconhecer respostas duplicadas ou tardias e para mostrar o progresso na projeção `AcompanhamentoCompra`.
+Uma linha por comando enviado: `saga_id`, `operation_id` (único), `comando`, `estado`, `resposta`, `atualizado_em`. O `estado` vale `PENDENTE` (enviado, sem resposta), `SUCESSO`, `REJEITADO` ou `DESCONHECIDO` (tentativas esgotadas sem resposta). Serve para auditoria, para reconhecer respostas duplicadas ou tardias e para mostrar o progresso na projeção `AcompanhamentoCompra`.
 
 ### 4.3 `operationId`
 
@@ -72,7 +73,7 @@ Cada comando de negócio e cada compensação recebem um `operationId` gerado pe
 Toda transição de estado acontece em **uma transação local** de Compras que grava, juntas:
 
 - a resposta recebida na inbox (deduplicação);
-- a nova linha de estado em `saga_compra` e o registro em `saga_passo`;
+- a nova linha de estado em `saga_compra` e o registro em `saga_operacao`;
 - o próximo comando e o evento de transição (para a projeção) no outbox.
 
 Se o processo cair antes do `COMMIT`, nada foi aplicado e a mensagem é reentregue. Se cair depois, o relay publica o que ficou no outbox. Após reinício, o orquestrador continua do estado persistido; não há estado só em memória.
@@ -131,7 +132,7 @@ stateDiagram-v2
 | 0 | Compras | (interno) | Compra `PENDENTE`, SAGA `EM_ANDAMENTO`, `AlocarDemanda` no outbox | — | — | Registrar Compra `CANCELADA` após as compensações | — |
 | 1 | Editais | `AlocarDemanda` | `UPDATE` condicional do saldo do item; cria `AlocacaoDemanda` `ATIVA` | `DemandaAlocada` | `AlocacaoDemandaRejeitada` | `LiberarDemanda` | `DemandaLiberada` |
 | 2 | Ofertas | `ReservarOferta` | `UPDATE` condicional da quantidade disponível; cria `ReservaOferta` `ATIVA` | `OfertaReservada` | `ReservaOfertaRejeitada` | `LiberarOferta` | `OfertaLiberada` |
-| 3 | Entregas | `AgendarEntrega` | Reserva capacidade na janela; cria `Agendamento` `AGENDADO` | `EntregaAgendada` | `AgendamentoRejeitado` | `CancelarAgendamento` | `AgendamentoCancelado` |
+| 3 | Entregas | `AgendarEntrega` | Reserva capacidade na janela; cria `Agendamento` `ATIVO` e `Entrega` `AGENDADA` | `EntregaAgendada` | `AgendamentoRejeitado` | `CancelarAgendamento` | `AgendamentoCancelado` |
 | 4 | Compras | (interno) | Compra `CONFIRMADA`, SAGA `CONCLUIDA`, `CompraConfirmada` no outbox | — | — | Sem compensação: é o último passo. Cancelar depois disso é outro processo de negócio | — |
 
 **Por que o passo 3 tem compensação, se é o último participante:** `CancelarAgendamento` não é usado no caminho de rejeição do próprio agendamento, mas é necessário quando o resultado do agendamento é desconhecido (timeout) e a SAGA acaba compensando, ou quando uma resposta `EntregaAgendada` chega depois de a SAGA ter decidido cancelar (seção 9).
@@ -189,7 +190,7 @@ sequenceDiagram
 
     C->>MQ: AgendarEntrega
     MQ->>L: AgendarEntrega
-    Note over L: Transação local:<br/>inbox + reserva de capacidade<br/>Agendamento AGENDADO<br/>outbox: EntregaAgendada
+    Note over L: Transação local:<br/>inbox + reserva de capacidade<br/>Agendamento ATIVO, Entrega AGENDADA<br/>outbox: EntregaAgendada
     L->>MQ: EntregaAgendada
     MQ->>C: EntregaAgendada
     Note over C: Transação local:<br/>inbox + Compra CONFIRMADA<br/>SAGA CONCLUIDA<br/>outbox: CompraConfirmada
@@ -267,7 +268,7 @@ O broker entrega cada mensagem **pelo menos uma vez** e não garante ordem globa
 | Onde | Proteção |
 |---|---|
 | Participante (Editais, Ofertas, Entregas) | Inbox por `messageId` na mesma transação dos efeitos; além disso, unicidade de negócio por `(compraId, operationId)`. Um comando repetido devolve **a resposta original** (sucesso ou rejeição), sem aplicar o efeito de novo |
-| Orquestrador (Compras) | Inbox por `messageId`. Uma resposta cujo `operationId` já tem resultado em `saga_passo` é descartada, mesmo que chegue com outro `messageId` (reenvio do participante) |
+| Orquestrador (Compras) | Inbox por `messageId`. Uma resposta cujo `operationId` já tem resultado em `saga_operacao` é descartada, mesmo que chegue com outro `messageId` (reenvio do participante) |
 | Projeção de leitura | Inbox e `versao` por agregado: evento antigo ou repetido não regride o estado (ver [`03-cqrs.md`](./03-cqrs.md)) |
 
 ### 9.2 Timeout com resultado desconhecido
@@ -301,7 +302,7 @@ Dois casos precisam de tratamento explícito:
 
 **b) Uma resposta de sucesso chega ao orquestrador depois de ele ter decidido compensar.** Exemplo: `EntregaAgendada` chega com a SAGA já em `COMPENSANDO`.
 
-- O orquestrador registra o resultado em `saga_passo`, mas **não** volta a avançar a SAGA.
+- O orquestrador registra o resultado em `saga_operacao`, mas **não** volta a avançar a SAGA.
 - Como o efeito agora é conhecido, ele garante que a compensação desse passo (`CancelarAgendamento`) esteja enviada e confirmada antes de marcar a Compra como `CANCELADA`.
 - Respostas para SAGAs já `CONCLUIDA` ou `CANCELADA` são descartadas e registradas em log para auditoria.
 
@@ -309,7 +310,7 @@ Dois casos precisam de tratamento explícito:
 
 | Quem reinicia | O que acontece |
 |---|---|
-| Orquestrador (Compras) | Não há estado em memória. Ao subir, a rotina de timeouts lê `saga_compra` e retoma cada SAGA pela `etapa_atual` e pelo `prazo_resposta`. Comandos já gravados no outbox são publicados pelo relay |
+| Orquestrador (Compras) | Não há estado em memória. Ao subir, a rotina de timeouts lê `saga_compra` e retoma cada SAGA pelo `passo_atual` e pelo `prazo_resposta`. Comandos já gravados no outbox são publicados pelo relay |
 | Participante | Mensagem recebida e não confirmada é reentregue pelo broker. Se o processo caiu antes do `COMMIT`, nada foi aplicado e o comando é processado do zero; se caiu depois, a inbox reconhece a repetição |
 | Relay do outbox | Linhas não marcadas como publicadas são publicadas de novo; os consumidores deduplicam (ver [`02-dados-outbox.md`](./02-dados-outbox.md)) |
 
