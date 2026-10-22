@@ -30,26 +30,26 @@
 
 ### Pessoa 2 — REST, gateway e BFFs
 
-- [ ] **P2-01:** OpenAPI dos quatro serviços, com a superfície da seção 6.2 e todo o ciclo de vida necessário (incluindo planos de alocação e homologação).
-- [ ] **P2-02:** parâmetros, schemas, exemplos, erros, paginação, autorização e idempotência.
-- [ ] **P2-03:** justificar versionamento e uso de recursos, verbos e códigos.
-- [ ] **P2-04:** NGINX com `auth_request`: rotas externas e internas, responsabilidades de cada camada e alternativas avaliadas.
-- [ ] **P2-05:** OpenAPI dos dois BFFs (`/dashboard`, `/inicio`, listagens e ações) e comparação das respostas para a mesma compra.
-- [ ] **P2-06:** HATEOAS de Compra com a divisão de responsabilidades entre Compras e BFF, links condicionados a estado e papel.
-- [ ] **P2-07:** validar sintaxe e referências dos OpenAPI e registrar ADR de acesso e BFFs.
+- [x] **P2-01:** OpenAPI dos quatro serviços, com a superfície da seção 6.2 e todo o ciclo de vida necessário (incluindo planos de alocação e homologação). → [`openapi/`](../parte2/openapi/README.md)
+- [x] **P2-02:** parâmetros, schemas, exemplos, erros, paginação, autorização e idempotência. → [`openapi/README.md`](../parte2/openapi/README.md)
+- [x] **P2-03:** justificar versionamento e uso de recursos, verbos e códigos. → [`openapi/README.md`](../parte2/openapi/README.md) §3 e §4
+- [x] **P2-04:** NGINX com `auth_request`: rotas externas e internas, responsabilidades de cada camada e alternativas avaliadas. → [`04-gateway-bffs.md`](../parte2/04-gateway-bffs.md) e [`gateway/nginx`](../parte2/gateway/nginx/nginx.conf)
+- [x] **P2-05:** OpenAPI dos dois BFFs (`/dashboard`, `/inicio`, listagens e ações) e comparação das respostas para a mesma compra. → [`04-gateway-bffs.md`](../parte2/04-gateway-bffs.md) §4
+- [x] **P2-06:** HATEOAS de Compra com a divisão de responsabilidades entre Compras e BFF, links condicionados a estado e papel. → [`04-gateway-bffs.md`](../parte2/04-gateway-bffs.md) §5
+- [x] **P2-07:** validar sintaxe e referências dos OpenAPI e registrar ADR de acesso e BFFs. → [`openapi/VALIDACAO.md`](../parte2/openapi/VALIDACAO.md) e [ADR 0007](../adr/0007-acesso-gateway-bffs.md)
 
 **Aceite:** outro integrante entende uma requisição do cliente até o serviço e constrói um cliente a partir do contrato, sem inventar campos. Os dois BFFs têm diferenças concretas de payload, agregação e propósito.
 
 ### Pessoa 3 — SAGA, mensagens e coerência final
 
-- [ ] **P3-01:** justificar orquestração frente à coreografia e definir o estado persistido (Compra e SAGA).
-- [ ] **P3-02:** comandos e eventos da tabela de passos, incluindo respostas de compensação.
-- [ ] **P3-03:** sequência de sucesso atravessando os quatro serviços, a partir da homologação (1 plano, N SAGAs).
-- [ ] **P3-04:** sequência de falha no agendamento, com todas as compensações pertinentes.
-- [ ] **P3-05:** duplicação, timeout, resposta tardia, reinício e compensação incompleta.
-- [ ] **P3-06:** envelope, payloads, correlação e versão dos eventos; eventos de transição de Compra consumidos pela projeção.
-- [ ] **P3-07:** recebimento e liberação de pagamento; ADR da SAGA.
-- [ ] **P3-08:** matriz de requisitos e roteiro de apresentação a partir dos documentos entregues.
+- [x] **P3-01:** justificar orquestração frente à coreografia e definir o estado persistido (Compra e SAGA). → [`05-saga.md`](../parte2/05-saga.md) §2 e [ADR 0005](../adr/0005-saga-orquestrada.md)
+- [x] **P3-02:** comandos e eventos da tabela de passos, incluindo respostas de compensação. → [`05-saga.md`](../parte2/05-saga.md) §6 e [`06-mensagens.md`](../parte2/06-mensagens.md) §3–§4
+- [x] **P3-03:** sequência de sucesso atravessando os quatro serviços, a partir da homologação (1 plano, N SAGAs). → [`05-saga.md`](../parte2/05-saga.md) §7
+- [x] **P3-04:** sequência de falha no agendamento, com todas as compensações pertinentes. → [`05-saga.md`](../parte2/05-saga.md) §8
+- [x] **P3-05:** duplicação, timeout, resposta tardia, reinício e compensação incompleta. → [`05-saga.md`](../parte2/05-saga.md) §9
+- [x] **P3-06:** envelope, payloads, correlação e versão dos eventos; eventos de transição de Compra consumidos pela projeção. → [`06-mensagens.md`](../parte2/06-mensagens.md) §2, §5, §8–§9
+- [x] **P3-07:** recebimento e liberação de pagamento; ADR da SAGA. → [`05-saga.md`](../parte2/05-saga.md) §10 e [ADR 0005](../adr/0005-saga-orquestrada.md)
+- [x] **P3-08:** matriz de requisitos e roteiro de apresentação a partir dos documentos entregues. → cobertura da rubrica no [`README.md`](../../README.md); roteiro ensaiado presencialmente
 
 **Aceite:** cada efeito tem compensação ou justificativa; a compra só termina cancelada após concluídas as compensações. Os diagramas usam exatamente os nomes e campos do catálogo de mensagens.
 
