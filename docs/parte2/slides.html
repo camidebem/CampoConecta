@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CampoConecta — Parte 2: Arquitetura</title>
+<style>
+  :root {
+    --verde: #1b5e20;
+    --verde-claro: #e8f5e9;
+    --verde-medio: #2e7d32;
+    --cinza: #37474f;
+    --cinza-claro: #eceff1;
+    --areia: #fafaf6;
+    --destaque: #bf360c;
+    --borda: #cfd8dc;
+    --slide-h: min(96vh, calc(96vw * 9 / 16));
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #12301a;
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--cinza);
+    overflow: hidden;
+  }
+
+  #deck {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .slide {
+    display: none;
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    height: var(--slide-h);
+    width: calc(var(--slide-h) * 16 / 9);
+    max-width: 96vw;
+    background: var(--areia);
+    border-radius: 10px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .45);
+    padding: 4.2vh 5vw 3vh;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  body.show-notes .slide.active > *:not(.notes) { display: none; }
+  body.show-notes .slide.active { background: transparent; box-shadow: none; }
+
+  .slide.active { display: flex; }
+
+  h1 {
+    font-size: clamp(22px, 3.4vw, 52px);
+    line-height: 1.12;
+    margin: 0 0 1.4vh;
+    color: var(--verde);
+    letter-spacing: -.5px;
+  }
+
+  h1 small {
+    display: block;
+    font-size: .42em;
+    color: var(--cinza);
+    font-weight: 500;
+    letter-spacing: 0;
+    margin-top: .7em;
+  }
+
+  h2 {
+    font-size: clamp(18px, 2.3vw, 36px);
+    margin: 0 0 1.6vh;
+    color: var(--verde);
+    line-height: 1.15;
+  }
+
+  .eyebrow {
+    font-size: clamp(10px, 1vw, 14px);
+    text-transform: uppercase;
+    letter-spacing: .18em;
+    color: var(--verde-medio);
+    font-weight: 700;
+    margin-bottom: 1.2vh;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.2em;
+    font-size: clamp(13px, 1.45vw, 22px);
+    line-height: 1.55;
+  }
+
+  li { margin-bottom: .75vh; }
+  li b { color: var(--verde); }
+  li .tag {
+    display: inline-block;
+    font-size: .78em;
+    background: var(--verde-claro);
+    color: var(--verde);
+    border-radius: 4px;
+    padding: .05em .4em;
+    font-weight: 700;
+  }
+
+  .hook {
+    margin-top: auto;
+    border-left: 5px solid var(--verde-medio);
+    background: var(--verde-claro);
+    padding: 1.2vh 1.2vw;
+    font-size: clamp(12px, 1.3vw, 20px);
+    font-weight: 600;
+    color: var(--verde);
+  }
+
+  .hook::before { display: none; }
+
+  /* diagrama */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .45vh;
+    font-size: clamp(10px, 1.05vw, 16px);
+    flex: 1;
+    justify-content: center;
+  }
+
+  .row { display: flex; gap: 1vw; justify-content: center; align-items: stretch; flex-wrap: nowrap; }
+
+  .box {
+    border: 2px solid var(--borda);
+    background: #fff;
+    border-radius: 8px;
+    padding: .7vh 1vw;
+    text-align: center;
+    font-weight: 600;
+    color: var(--cinza);
+    min-width: 8vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .box.gw { background: #fff3e0; border-color: #ef6c00; color: #bf360c; }
+  .box.bff { background: #f3e5f5; border-color: #6a1b9a; color: #4a148c; }
+  .box.svc { background: var(--verde-claro); border-color: var(--verde-medio); color: var(--verde); }
+  .box.db { background: var(--cinza-claro); border-color: #90a4ae; color: #263238; border-radius: 8px/18px; }
+  .box.mq { background: #fce4ec; border-color: #ad1457; color: #880e4f; border-style: dashed; }
+
+  .arrow { color: #90a4ae; font-size: 1.1em; line-height: 1; }
+  .label { font-size: .85em; color: #607d8b; }
+
+  /* comparação */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.4vw;
+    font-size: clamp(11px, 1.15vw, 17px);
+  }
+
+  .card {
+    border: 2px solid var(--borda);
+    border-radius: 8px;
+    padding: 1.2vh 1vw;
+    background: #fff;
+  }
+
+  .card h3 {
+    margin: 0 0 .8vh;
+    font-size: 1.05em;
+    color: var(--verde);
+  }
+
+  .card.bad { border-color: #ef9a9a; background: #ffebee; }
+  .card.bad h3 { color: #b71c1c; }
+  .card.good { border-color: #a5d6a7; background: var(--verde-claro); }
+
+  code {
+    background: #263238;
+    color: #eceff1;
+    border-radius: 4px;
+    padding: .08em .35em;
+    font-size: .92em;
+  }
+
+  /* notas */
+  .notes {
+    display: none;
+    position: fixed;
+    left: 50%;
+    bottom: 1.5vh;
+    transform: translateX(-50%);
+    width: min(92vw, 980px);
+    max-height: 26vh;
+    overflow-y: auto;
+    background: #10221a;
+    color: #e8f5e9;
+    border: 1px solid #2e7d32;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    line-height: 1.45;
+    z-index: 20;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .5);
+  }
+
+  body.show-notes .slide.active .notes {
+    display: block;
+    position: fixed;
+    inset: 9vh 7vw;
+    width: auto;
+    max-height: none;
+    transform: none;
+    font-size: clamp(15px, 1.55vw, 23px);
+    line-height: 1.6;
+    padding: 3vh 3vw;
+    overflow-y: auto;
+    border-width: 2px;
+  }
+  .notes b { color: #a5d6a7; }
+  .notes .q { color: #ffcc80; }
+
+  /* barra */
+  #bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 4px;
+    background: #66bb6a;
+    width: 0;
+    z-index: 30;
+    transition: width .18s ease;
+  }
+
+  #hud {
+    position: fixed;
+    right: 12px;
+    top: 10px;
+    font-size: 12px;
+    color: #c5e1a5;
+    background: rgba(0, 0, 0, .35);
+    padding: 4px 10px;
+    border-radius: 999px;
+    z-index: 30;
+    opacity: .8;
+    font-family: ui-monospace, Consolas, monospace;
+    animation: someHud 1.2s ease 6s forwards;
+  }
+
+  #hud:hover { animation: none; opacity: .9; }
+
+  @keyframes someHud { to { opacity: 0; } }
+
+  #hud b { color: #fff; }
+
+  /* impressão */
+  @page { size: A4 landscape; margin: 8mm; }
+
+  @media print {
+    html, body { background: #fff; overflow: visible; height: auto; }
+    #deck { display: block; height: auto; }
+    .slide {
+      display: flex !important;
+      position: relative;
+      inset: auto;
+      width: 100%;
+      height: 180mm;
+      page-break-after: always;
+      box-shadow: none;
+      border: 1px solid #ddd;
+      border-radius: 0;
+    }
+    .notes, #hud, #bar { display: none !important; }
+  }
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<div id="deck">
+
+  <!-- 1 -->
+  <section class="slide active">
+    <div class="eyebrow">GCC129 · Sistemas Distribuídos · 2026/2</div>
+    <h1>CampoConecta
+      <small>Parte 2 — Arquitetura · projeto documentado, contratos e decisões</small>
+    </h1>
+    <ul>
+      <li>Conecta a <b>agricultura familiar</b> à merenda escolar</li>
+      <li>Quatro serviços, dois clientes, dois BFFs, um banco por serviço</li>
+      <li>Documentação verificável — <b>sem sistema em execução</b> nesta etapa</li>
+    </ul>
+    <div class="hook">Nesta etapa entregamos o projeto: serviços, contratos, dados e os fluxos distribuídos.</div>
+    <aside class="notes">
+      <b>Fala:</b> "Somos o CampoConecta. A Parte 2 é arquitetura: mostramos os quatro serviços, os contratos REST, o gateway com dois BFFs, os bancos separados, a SAGA e o CQRS."<br>
+      <span class="q">Se perguntarem "cadê o código?":</span> a Parte 2 é documental por definição do enunciado; a execução é a Parte 4.
+    </aside>
+  </section>
+
+  <!-- 2 -->
+  <section class="slide">
+    <h2>O problema, em uma frase</h2>
+    <ul>
+      <li>A Lei 11.947/2009 exige <b>30% do FNDE</b> em produtos da agricultura familiar</li>
+      <li>Prefeituras não conseguem operar a cota: gestor despreparado + produtor desorganizado</li>
+      <li>O CampoConecta digitaliza o caminho: <b>edital → proposta → alocação → entrega → pagamento</b></li>
+    </ul>
+    <div class="hook">Existe uma obrigação legal e uma lacuna operacional: é essa lacuna que o sistema resolve.</div>
+    <aside class="notes">
+      <b>Fala:</b> "A lei existe desde 2009, mas cumprir a cota é difícil na prática. O sistema organiza esse fluxo entre prefeitura, escola e produtor."<br>
+      <span class="q">Se perguntarem "por que 30%?":</span> é o mínimo legal do PNAE; o sistema não cria a regra, ele ajuda a cumpri-la.
+    </aside>
+  </section>
+
+  <!-- 3 -->
+  <section class="slide">
+    <h2>Arquitetura em uma imagem</h2>
+    <div class="flow">
+      <div class="row">
+        <div class="box">Portal prefeitura/escola</div>
+        <div class="box">Aplicativo do produtor</div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="row"><div class="box gw">API Gateway (NGINX) · auth_request → authn-verify</div></div>
+      <div class="arrow">↓</div>
+      <div class="row">
+        <div class="box bff">BFF prefeitura</div>
+        <div class="box bff">BFF produtor</div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="row">
+        <div class="box svc">Editais</div>
+        <div class="box svc">Ofertas</div>
+        <div class="box svc">Compras</div>
+        <div class="box svc">Entregas</div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="row">
+        <div class="box db">BD Editais</div>
+        <div class="box db">BD Ofertas</div>
+        <div class="box db">BD Compras</div>
+        <div class="box db">BD Entregas</div>
+      </div>
+      <div class="arrow">↕</div>
+      <div class="row"><div class="box mq">RabbitMQ — comandos, eventos, outbox/inbox</div></div>
+    </div>
+    <div class="hook">A única porta de entrada é o gateway; cada serviço só escreve no seu banco.</div>
+    <aside class="notes">
+      <b>Fala:</b> "Cliente entra pelo gateway, que valida o token. O BFF adapta para o cliente e chama os serviços. Cada serviço tem seu banco. O que é assíncrono passa pelo RabbitMQ."<br>
+      <span class="q">Se perguntarem "o BFF fala com o banco?":</span> não. BFF agrega via API; banco é sempre do serviço dono.
+    </aside>
+  </section>
+
+  <!-- 4 -->
+  <section class="slide">
+    <h2>Quatro serviços e por que esse corte</h2>
+    <ul>
+      <li><b>Editais</b> — demanda: prefeitura, escola, edital, saldo do item</li>
+      <li><b>Ofertas</b> — produção: produtor, oferta, reserva</li>
+      <li><b>Compras</b> — compromisso: proposta, plano, compra, SAGA, pagamento</li>
+      <li><b>Entregas</b> — logística: capacidade, agendamento, recebimento</li>
+    </ul>
+    <div class="hook">Cortamos por ciclo de vida e regra própria, não por tabela — por isso não existe um "serviço de cadastros".</div>
+    <aside class="notes">
+      <b>Fala:</b> "Demanda, oferta, compromisso e logística têm regras e prazos diferentes. Escola e prefeitura ficam em Editais porque são o lado da demanda; produtor fica em Ofertas porque produção e identidade evoluem juntas."<br>
+      <span class="q">Se perguntarem "por que não um serviço por tabela?":</span> aumentaria a comunicação sem criar fronteira de negócio.
+    </aside>
+  </section>
+
+  <!-- 5 -->
+  <section class="slide">
+    <h2>Contratos REST</h2>
+    <ul>
+      <li>OpenAPI 3.1: <b>4 serviços + 2 BFFs</b>, todos sobre <code>/api/v1</code></li>
+      <li>Status com significado: <b>201</b> criado, <b>202</b> assíncrono, <b>409</b> conflito, <b>503</b> dependência fora</li>
+      <li>Versionamento: evolução compatível mantém v1; quebra exige nova versão</li>
+      <li><b>HATEOAS</b> no recurso Compra: <code>_links</code> variam por estado e papel</li>
+    </ul>
+    <div class="hook">O contrato é executável: validamos os seis arquivos com Redocly e um script de cobertura.</div>
+    <aside class="notes">
+      <b>Fala:</b> "Os contratos estão em OpenAPI 3.1. O Compra devolve links de navegação — por exemplo, 'confirmar recebimento' só aparece para a escola com vínculo e entrega agendada."<br>
+      <span class="q">Se perguntarem "quem monta os links?":</span> o serviço Compras monta os seus; o BFF reescreve para o prefixo do gateway e acrescenta links de outros serviços.
+    </aside>
+  </section>
+
+  <!-- 6 -->
+  <section class="slide">
+    <h2>Gateway e dois BFFs</h2>
+    <div class="compare">
+      <div class="card">
+        <h3>Gateway (NGINX)</h3>
+        Entrada única, TLS, <code>auth_request</code> → JWT validado no <code>authn-verify</code>, rate limit, CORS, correlation-id.<br>
+        <b>Não</b> agrega e <b>não</b> aplica regra de negócio.
+      </div>
+      <div class="card">
+        <h3>Dois BFFs, dois clientes</h3>
+        <b>Prefeitura:</b> tela ampla, página de 50, objetos aninhados, dashboard.<br>
+        <b>Produtor:</b> mobile, cursor de 10, payload achatado, ETag.
+      </div>
+    </div>
+    <div class="hook">Mesmo recurso, respostas diferentes: o portal vê contexto; o aplicativo vê só o essencial.</div>
+    <aside class="notes">
+      <b>Fala:</b> "O gateway cuida de entrada e autenticação; a regra fica nos serviços. Os BFFs existem porque o portal e o aplicativo têm necessidades diferentes: volume, formato e rede."<br>
+      <span class="q">Se perguntarem "por que não um BFF só?":</span> o payload do portal carrega histórico e contexto; no mobile isso é custo de rede sem uso.
+    </aside>
+  </section>
+
+  <!-- 7 -->
+  <section class="slide">
+    <h2>Um banco por serviço — e o outbox</h2>
+    <ul>
+      <li>Quatro instâncias <b>PostgreSQL</b>, usuário próprio, <b>sem FK entre bancos</b></li>
+      <li>Dado de outro serviço vira <b>snapshot</b> com <code>snapshotAt</code>, nunca fonte de verdade</li>
+      <li>Reservas por <code>UPDATE</code> condicional: <code>saldo &gt;= quantidade</code></li>
+      <li><b>Dual write eliminado</b>: entidade e linha do outbox na mesma transação</li>
+      <li>Consumidor grava <code>messageId</code> na inbox → entrega repetida, efeito único</li>
+    </ul>
+    <div class="hook">Não usamos transação distribuída: outbox resolve o dual write e a inbox garante idempotência.</div>
+    <aside class="notes">
+      <b>Fala:</b> "Se o serviço cair entre gravar e publicar, a mensagem fica pendente no outbox e o relay republica. Se publicar duas vezes, a inbox descarta a segunda."<br>
+      <span class="q">Se perguntarem "e o saldo, não corre risco de vender duas vezes?":</span> não — o UPDATE condicional é atômico e reavalia o saldo na linha já atualizada.
+    </aside>
+  </section>
+
+  <!-- 8 -->
+  <section class="slide">
+    <h2>SAGA: confirmar a compra</h2>
+    <ul>
+      <li><b>Orquestrada</b> em Compras — estado em <code>saga_compra</code> e <code>saga_operacao</code></li>
+      <li>Homologação cria N compras → <b>uma SAGA por compra</b></li>
+      <li>Passos: <b>AlocarDemanda</b> (Editais) → <b>ReservarOferta</b> (Ofertas) → <b>AgendarEntrega</b> (Entregas) → concluir</li>
+      <li>Falha no agendamento: <b>LiberarOferta</b> + <b>LiberarDemanda</b> → compra CANCELADA</li>
+    </ul>
+    <div class="hook">Quatro serviços, quatro passos e três compensações: a compra só cancela depois de desfazer tudo.</div>
+    <aside class="notes">
+      <b>Fala:</b> "A escolha foi orquestrada: um único lugar guarda o progresso e sabe o que compensar. A coreografia distribuiria o controle e dificultaria auditar."<br>
+      <span class="q">Se perguntarem "por que Editais entrou?":</span> para duas compras não estourarem a mesma demanda, mesmo com produção suficiente.
+    </aside>
+  </section>
+
+  <!-- 9 -->
+  <section class="slide">
+    <h2>CQRS em Compras</h2>
+    <div class="compare">
+      <div class="card bad">
+        <h3>Sem projeção</h3>
+        Acompanhar uma compra exigiria <b>4 chamadas</b> — Editais, Ofertas, Compras e Entregas — e remontar a SAGA no cliente.
+      </div>
+      <div class="card good">
+        <h3>Com a projeção</h3>
+        Uma consulta em <code>acompanhamento_compra</code>, atualizada por evento, com <code>versao</code> para não regredir.
+      </div>
+    </div>
+    <ul>
+      <li>Defasagem aceitável: <b>até 5 s</b> (meta declarada, ainda não medida)</li>
+      <li>Reconstrução a partir das tabelas de escrita — <b>sem replay do broker</b></li>
+    </ul>
+    <div class="hook">A projeção é só leitura: saldo, autorização e pagamento continuam decididos no serviço dono.</div>
+    <aside class="notes">
+      <b>Fala:</b> "O painel é supervisão, então 5 segundos de atraso é aceitável. Se a projeção se perder, reconstruímos pelas tabelas de escrita — o broker não guarda mensagem antiga."<br>
+      <span class="q">Se perguntarem "isso é event sourcing?":</span> não. O modelo de escrita é estado atual; a projeção é uma visão derivada.
+    </aside>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide">
+    <h2>Onde verificar</h2>
+    <ul>
+      <li>README: tabela de <b>cobertura da rubrica</b> — critério, peso e documento</li>
+      <li><code>docs/parte2/01..06</code>: serviços, dados/outbox, CQRS, gateway/BFFs, SAGA e mensagens</li>
+      <li><code>docs/adr/</code>: sete decisões com alternativas e consequências</li>
+      <li>Validação: <code>redocly lint</code> nos seis contratos + <code>verificar-contratos.cjs</code></li>
+    </ul>
+    <div class="hook">Tudo é rastreável a partir do README: o critério, o documento e a evidência.</div>
+    <aside class="notes">
+      <b>Fala:</b> "Qualquer ponto da rubrica tem um documento associado no README. Os contratos são validados por ferramenta, não por inspeção visual."<br>
+      <span class="q">Perguntas prováveis:</span> "o que acontece se o relay cair?", "por que SAGA orquestrada?", "por que só Compras tem CQRS?" — respostas nas notas dos slides 7, 8 e 9.
+    </aside>
+  </section>
+
+</div>
+
+<div id="hud"><b>←</b>/<b>→</b> navegar · <b>N</b> notas · <b>F</b> tela cheia · <b>P</b> exportar PDF</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const bar = document.getElementById('bar');
+  let i = 0;
+
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle('active', k === i));
+    bar.style.width = ((i + 1) / slides.length * 100) + '%';
+    history.replaceState(null, '', '#' + (i + 1));
+  }
+
+  function toggleNotes() {
+    document.body.classList.toggle('show-notes');
+  }
+
+  document.addEventListener('keydown', (e) => {
+    switch (e.key) {
+      case 'ArrowRight': case 'PageDown': case ' ': case 'Enter':
+        e.preventDefault(); show(i + 1); break;
+      case 'ArrowLeft': case 'PageUp':
+        e.preventDefault(); show(i - 1); break;
+      case 'Home': show(0); break;
+      case 'End': show(slides.length - 1); break;
+      case 'n': case 'N': toggleNotes(); break;
+      case 'f': case 'F':
+        if (document.fullscreenElement) document.exitFullscreen();
+        else document.documentElement.requestFullscreen();
+        break;
+      case 'p': case 'P':
+        window.print(); break;
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.notes')) return;
+    show(i + (e.clientX > window.innerWidth / 2 ? 1 : -1));
+  });
+
+  const start = parseInt(location.hash.replace('#', ''), 10);
+  show(Number.isFinite(start) && start > 0 ? start - 1 : 0);
+</script>
+</body>
+</html>
