@@ -113,6 +113,19 @@ node docs/parte2/openapi/verificar-contratos.cjs
 
 Os contratos também podem ser abertos em qualquer visualizador OpenAPI (por exemplo, o Swagger Editor). Os diagramas são escritos em Mermaid e aparecem renderizados ao abrir os arquivos `.md` no GitHub. O relatório completo das verificações está em [`openapi/VALIDACAO.md`](docs/parte2/openapi/VALIDACAO.md).
 
+### Cobertura da rubrica
+
+| Critério | Peso | Onde está a evidência |
+|---|---:|---|
+| Decomposição e fronteiras dos serviços | 15% | [`01-servicos.md`](docs/parte2/01-servicos.md) §2–§4, com diagramas em §8–§9 |
+| Contrato REST | 15% | [`openapi/`](docs/parte2/openapi/README.md): seis contratos, versionamento justificado e HATEOAS em Compra |
+| Gateway e routing | 10% | [`04-gateway-bffs.md`](docs/parte2/04-gateway-bffs.md) §1–§2 e [`gateway/nginx`](docs/parte2/gateway/nginx/nginx.conf) |
+| BFF (2 clientes distintos) | 10% | [`04-gateway-bffs.md`](docs/parte2/04-gateway-bffs.md) §3–§4 e os dois contratos de BFF |
+| Database per service, consistência e outbox | 15% | [`02-dados-outbox.md`](docs/parte2/02-dados-outbox.md) §1–§10 |
+| SAGA | 20% | [`05-saga.md`](docs/parte2/05-saga.md) §6–§9 e [`06-mensagens.md`](docs/parte2/06-mensagens.md) |
+| CQRS | 10% | [`03-cqrs.md`](docs/parte2/03-cqrs.md) |
+| Apresentação e arguição | 5% | demonstração oral a partir destes documentos |
+
 ## 👥 Integrantes
 
 <table align="center">
