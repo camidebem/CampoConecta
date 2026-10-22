@@ -30,7 +30,7 @@ As APIs de domínio mantêm a autoridade sobre dados e operações; os BFFs adap
 | Auditoria | `X-Correlation-Id` UUID opcional na entrada, gerado se ausente e devolvido em todas as respostas; `correlationId` também no erro |
 | Validação | Erros de schema, query, data, UUID, cabeçalho obrigatório ou campo desconhecido usam `400`; eventual FastAPI deve adaptar o `422` padrão para este contrato |
 
-Prazos precisam ser futuros quando exigido pela operação; janelas exigem início anterior ao fim. Intervalos de consulta têm limites inclusivos e `inicioDesde <= inicioAte`. Quantidade e saldo precisam usar a mesma unidade do item/oferta; não há conversão implícita. Capacidade logística usa kg no modelo log?stico: outras unidades exigem conversão definida pelos donos antes do agendamento, sem somar unidades incompatíveis.
+Prazos precisam ser futuros quando exigido pela operação; janelas exigem início anterior ao fim. Intervalos de consulta têm limites inclusivos e `inicioDesde <= inicioAte`. Quantidade e saldo precisam usar a mesma unidade do item/oferta; não há conversão implícita. Capacidade logística usa kg no modelo logístico: outras unidades exigem conversão definida pelos donos antes do agendamento, sem somar unidades incompatíveis.
 
 Exemplos são ilustrativos, com UUIDs válidos, e não cadastros reais ou comprovação de integração. Datas e dados documentais não dispensam validações de negócio no sistema futuro.
 

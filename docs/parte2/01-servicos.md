@@ -1,6 +1,6 @@
 # Serviços, fronteiras e organização interna
 
-> Entrega **P1-01** (decomposição em serviços e justificativa das fronteiras) e **P1-02** (diagramas de componentes e de comunicação).
+> Decomposição em serviços, justificativa das fronteiras e diagramas de componentes e de comunicação.
 > Referência comum: [`00-base-comum.md`](./00-base-comum.md). Decisões registradas em [`docs/adr/`](../adr/).
 
 ## 1. Escopo deste documento
@@ -129,7 +129,7 @@ compras/
 
 Cada módulo expõe um caso de uso e mantém seus repositórios; a comunicação entre módulos acontece por serviço de aplicação, não por acesso direto a tabela de outro módulo.
 
-## 7. Padrões aplicados nesta frente
+## 7. Padrões aplicados
 
 | Padrão | Onde | Problema que resolve |
 |---|---|---|
@@ -146,7 +146,7 @@ Cada módulo expõe um caso de uso e mantém seus repositórios; a comunicação
 | **Observer** | Evento de transição → projetor da leitura | Desacopla escrita de leitura |
 | **Repository / Unit of Work** | Acesso a dados e transação local | Esconde SQL e garante que entidade + outbox commitam juntos |
 | **Ports & Adapters** | Estrutura interna de cada serviço | Domínio testável sem infraestrutura |
-| **Facade** | BFFs (frente P2) | Agrega vários serviços em uma resposta por cliente |
+| **Facade** | BFFs ([`04-gateway-bffs.md`](./04-gateway-bffs.md)) | Agrega vários serviços em uma resposta por cliente |
 
 ## 8. Diagramas
 
@@ -373,10 +373,10 @@ flowchart TD
 
 1. **Compras concentra complexidade.** Mitigação: módulos da seção 6.3 e uma SAGA por compra, com estado persistido — se o volume crescer, `projecao/` pode ser extraída sem mudar contratos.
 2. **Snapshot desatualizado.** Aceito para exibição; toda decisão crítica consulta o dono (seção 5).
-3. **Edital encerrado durante a SAGA.** A reserva atômica em Editais decide; a compra é cancelada com compensação (documentado na frente de SAGA).
-4. **Nomes ainda não congelados.** `AlocacaoDemanda`, `ReservaOferta` e `AcompanhamentoCompra` são os nomes canônicos usados nas três frentes; mudança exige PR na base comum.
+3. **Edital encerrado durante a SAGA.** A reserva atômica em Editais decide; a compra é cancelada com compensação (ver [`05-saga.md`](./05-saga.md), seção 8.1).
+4. **Nomes ainda não congelados.** `AlocacaoDemanda`, `ReservaOferta` e `AcompanhamentoCompra` são os nomes canônicos usados em todos os documentos; mudança exige PR na base comum.
 
-## 12. Critérios de aceite da frente
+## 12. Critérios de verificação
 
 - [x] Quatro serviços com responsabilidade exclusiva e entidades próprias.
 - [x] Toda fronteira justificada, com alternativa correspondente descartada.
