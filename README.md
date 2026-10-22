@@ -79,9 +79,9 @@ O CampoConecta atua como uma ponte direta entre a oferta (produtores locais) e a
 - **Logística:** A entrega dos alimentos é agendada e, posteriormente, confirmada fisicamente na escola recebedora.
 - **Pagamento:** Após a confirmação do recebimento da mercadoria, o sistema libera o pagamento ao produtor.
 
-## � Documentação
+## 📚 Documentação
 
-A documentação da **Parte 2 (arquitetura)** fica em `docs/`. O ponto de partida é a base comum, que fixa serviços, contratos e decisões compartilhadas entre as três frentes de trabalho.
+A documentação da **Parte 2 (arquitetura)** fica em `docs/`. O ponto de partida é a base comum, que fixa serviços, contratos e decisões compartilhadas por todos os documentos.
 
 | Documento | Conteúdo |
 |---|---|
@@ -89,6 +89,8 @@ A documentação da **Parte 2 (arquitetura)** fica em `docs/`. O ponto de partid
 | [Serviços e fronteiras](docs/parte2/01-servicos.md) | Decomposição, justificativa das fronteiras, alternativas descartadas, diagramas e padrões |
 | [Dados, consistência e outbox](docs/parte2/02-dados-outbox.md) | Modelo de dados, concorrência nas reservas, consistência eventual, outbox e inbox |
 | [CQRS em Compras](docs/parte2/03-cqrs.md) | Modelo de escrita e leitura, projeção `AcompanhamentoCompra`, defasagem e reconstrução |
+| [Gateway, BFFs e HATEOAS](docs/parte2/04-gateway-bffs.md) | Roteamento no NGINX, autenticação delegada, dois BFFs com respostas diferentes e links HATEOAS em Compra |
+| [Contratos REST (OpenAPI)](docs/parte2/openapi/README.md) | Contratos OpenAPI 3.1 dos quatro serviços e dos dois BFFs, semântica HTTP, versionamento, paginação e idempotência |
 | [SAGA: confirmar compra](docs/parte2/05-saga.md) | SAGA orquestrada, estados, compensações, sequências de sucesso e de falha, timeouts, recebimento e pagamento |
 | [Catálogo de mensagens](docs/parte2/06-mensagens.md) | Envelope, comandos, respostas, eventos, roteamento no RabbitMQ e versionamento |
 | [Princípios e padrões](docs/parte2/08-padroes-e-principios.md) | SOLID, padrões GoF e padrões arquiteturais aplicados ao projeto |
@@ -97,7 +99,21 @@ A documentação da **Parte 2 (arquitetura)** fica em `docs/`. O ponto de partid
 
 > A Parte 2 é documental: não há sistema em execução nesta etapa. A implementação, os containers e a integração de LLM pertencem às Partes 3 e 4.
 
-## �👥 Integrantes
+### Como validar os contratos
+
+A Parte 2 não tem sistema executável. O que pode ser verificado são os contratos e a configuração do gateway. Na raiz do repositório, com Node.js e npm instalados:
+
+```powershell
+# Valida a sintaxe e as referências dos seis contratos OpenAPI
+npm exec --yes --package=@redocly/cli@2.8.0 -- redocly lint docs/parte2/openapi/editais.openapi.json docs/parte2/openapi/ofertas.openapi.json docs/parte2/openapi/compras.openapi.json docs/parte2/openapi/entregas.openapi.json docs/parte2/openapi/bff-prefeitura.openapi.json docs/parte2/openapi/bff-produtor.openapi.json --extends minimal
+
+# Confere cobertura das operações, origens dos BFFs e links HATEOAS dos exemplos
+node docs/parte2/openapi/verificar-contratos.cjs
+```
+
+Os contratos também podem ser abertos em qualquer visualizador OpenAPI (por exemplo, o Swagger Editor). Os diagramas são escritos em Mermaid e aparecem renderizados ao abrir os arquivos `.md` no GitHub. O relatório completo das verificações está em [`openapi/VALIDACAO.md`](docs/parte2/openapi/VALIDACAO.md).
+
+## 👥 Integrantes
 
 <table align="center">
   <tr>
