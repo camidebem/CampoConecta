@@ -2,7 +2,7 @@
 
 - **Status:** aceito
 - **Data:** 2026-10-20
-- **Decisores:** equipe CampoConecta (frente de serviços e dados)
+- **Decisores:** equipe CampoConecta
 - **Relacionados:** [`03-cqrs.md`](../parte2/03-cqrs.md), [`ADR 0001`](./0001-quatro-servicos-de-dominio.md)
 
 ## Contexto

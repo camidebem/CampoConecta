@@ -2,7 +2,7 @@
 
 - **Status:** aceito
 - **Data:** 2026-10-20
-- **Decisores:** equipe CampoConecta (frente de serviços e dados)
+- **Decisores:** equipe CampoConecta
 - **Relacionados:** [`02-dados-outbox.md`](../parte2/02-dados-outbox.md)
 
 ## Contexto

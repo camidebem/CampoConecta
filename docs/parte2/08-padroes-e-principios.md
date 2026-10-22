@@ -79,8 +79,8 @@ Só incluímos um padrão quando ele responde a três perguntas: qual problema e
 | Repository, Unit of Work, concorrência, Outbox, Inbox, DLQ | [`02-dados-outbox.md`](./02-dados-outbox.md) |
 | CQRS, Observer (evento → projeção), reconstrução | [`03-cqrs.md`](./03-cqrs.md) |
 | Decisões registradas | [`docs/adr/`](../adr/) |
-| SAGA, compensações e catálogo de mensagens | frente Pessoa 3 (`05-saga.md`, `06-mensagens.md`) |
-| Gateway, BFFs e HATEOAS | frente Pessoa 2 (`04-gateway-bffs.md`) |
+| SAGA, compensações e catálogo de mensagens | [`05-saga.md`](./05-saga.md), [`06-mensagens.md`](./06-mensagens.md) |
+| Gateway, BFFs e HATEOAS | [`04-gateway-bffs.md`](./04-gateway-bffs.md), [`openapi/`](./openapi/README.md) |
 
 ## 6. Anti-padrões evitados
 

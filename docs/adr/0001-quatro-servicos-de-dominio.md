@@ -2,7 +2,7 @@
 
 - **Status:** aceito
 - **Data:** 2026-10-20
-- **Decisores:** equipe CampoConecta (frente de serviços e dados)
+- **Decisores:** equipe CampoConecta
 - **Relacionados:** [`01-servicos.md`](../parte2/01-servicos.md), [`ADR 0003`](./0003-cqrs-em-compras.md)
 
 ## Contexto

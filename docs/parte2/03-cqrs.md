@@ -1,6 +1,6 @@
 # CQRS em Compras
 
-> Entrega **P1-06**. Complementa [`02-dados-outbox.md`](./02-dados-outbox.md) (entrega dos eventos) e [`01-servicos.md`](./01-servicos.md) (fronteiras).
+> Separação entre escrita e leitura em Compras. Complementa [`02-dados-outbox.md`](./02-dados-outbox.md) (entrega dos eventos) e [`01-servicos.md`](./01-servicos.md) (fronteiras).
 > Decisão registrada em [`ADR 0003`](../adr/0003-cqrs-em-compras.md).
 
 ## 1. Por que Compras se beneficia da separação
@@ -180,4 +180,4 @@ Opcionalmente, os eventos ainda no outbox (`PENDENTE`) são reprocessados depois
 | Reconstrução durante operação | geração nova + *swap* |
 | Divergência entre escrita e leitura | reconstrução determinística a partir da escrita |
 
-**Aceite (P1-06):** (a) escrita e leitura estão separados com tabelas distintas; (b) a justificativa é a composição de quatro serviços, não "moda arquitetural"; (c) a atualização é por evento com outbox/inbox; (d) a defasagem aceitável está declarada como meta; (e) existe caminho de reconstrução que **não** depende do broker.
+**Critérios de verificação:** (a) escrita e leitura estão separados com tabelas distintas; (b) a justificativa é a composição de quatro serviços, não "moda arquitetural"; (c) a atualização é por evento com outbox/inbox; (d) a defasagem aceitável está declarada como meta; (e) existe caminho de reconstrução que **não** depende do broker.

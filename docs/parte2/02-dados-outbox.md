@@ -1,6 +1,6 @@
 # Dados, consistência e concorrência
 
-> Entregas **P1-03** (entidades, referências externas, snapshots e instâncias) e **P1-04** (concorrência nas reservas, consistência eventual e pontos de dual write).
+> Entidades, referências externas, snapshots e instâncias; concorrência nas reservas, consistência eventual, dual write e outbox.
 > O padrão outbox é detalhado em [`02-dados-outbox.md`](./02-dados-outbox.md). Decisão de banco registrada em [`ADR 0002`](../adr/0002-postgresql-por-servico.md).
 
 ## 1. Princípios
@@ -29,7 +29,7 @@
 
 ## 3. Modelo de dados por serviço
 
-Os esquemas abaixo são o **modelo conceitual** acordado entre as frentes; nomes de tabela e coluna são canônicos e mudam só por PR na base comum.
+Os esquemas abaixo são o **modelo conceitual** comum a todos os documentos; nomes de tabela e coluna são canônicos e mudam só por PR na base comum.
 
 ### 3.1 Editais
 
@@ -140,7 +140,7 @@ stateDiagram-v2
     CANCELADA --> [*]
 ```
 
-A Compra permanece `PENDENTE` durante a execução **e** durante a compensação. Os estados internos da SAGA (`EM_ANDAMENTO`, `COMPENSANDO`, `CONCLUIDA`, `CANCELADA`) são da frente de SAGA e não substituem este ciclo.
+A Compra permanece `PENDENTE` durante a execução **e** durante a compensação. Os estados internos da SAGA (`EM_ANDAMENTO`, `COMPENSANDO`, `CONCLUIDA`, `CANCELADA`) são detalhados em [`05-saga.md`](./05-saga.md) e não substituem este ciclo.
 
 ## 4. Referências externas e snapshots
 
@@ -188,7 +188,7 @@ UPDATE item_edital
 ### 5.3 Controle otimista para edição
 
 - `edital.versao`, `plano_alocacao.versao`, `compra.versao` e `capacidade_logistica.versao` existem para detectar edição concorrente.
-- Ajuste de plano e edição de capacidade usam a versão lida; conflito devolve `409` e o cliente recarrega (contrato HTTP na frente P2).
+- Ajuste de plano e edição de capacidade usam a versão lida; conflito devolve `409` e o cliente recarrega (contrato HTTP em [`openapi/`](./openapi/README.md)).
 - Reservas **não** usam controle otimista com retry cego: a instrução condicional já é atômica e o retry cego poderia duplicar tentativa de negócio.
 
 ## 6. Consistência eventual e dual write
@@ -381,4 +381,4 @@ Regras:
 | **Retry com backoff** | Relay e consumidores | Absorve indisponibilidade transitória sem perder mensagem |
 | **Dead Letter Channel** | Fila de mensagens mortas | Evita bloqueio por mensagem envenenada |
 
-**Aceite da frente (P1-05):** é possível responder, sem ambiguidade, (a) o que acontece se o relay cair com linhas pendentes, (b) o que acontece se ele publicar e falhar antes de marcar, (c) por que a reentrega não duplica reserva nem liberação de pagamento, (d) onde a mensagem vai quando esgota as tentativas e (e) quais erros são retentados, quais são permanentes e qual rejeição é de negócio.
+**Critérios de verificação:** é possível responder, sem ambiguidade, (a) o que acontece se o relay cair com linhas pendentes, (b) o que acontece se ele publicar e falhar antes de marcar, (c) por que a reentrega não duplica reserva nem liberação de pagamento, (d) onde a mensagem vai quando esgota as tentativas e (e) quais erros são retentados, quais são permanentes e qual rejeição é de negócio.
