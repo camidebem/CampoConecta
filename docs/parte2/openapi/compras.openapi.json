@@ -1,0 +1,2714 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CampoConecta — Compras",
+    "version": "1.1.0",
+    "description": "Contrato da API interna do CampoConecta, consumida pelos BFFs. Convenções em README.md e regras de integração propostas no ADR 0006. Componentes ainda não implantados."
+  },
+  "servers": [
+    {
+      "url": "http://compras:8000/api/v1",
+      "description": "Endereço interno proposto; porta de referência, sem implantação."
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "propostas",
+      "description": "Recursos propostas de CampoConecta — Compras."
+    },
+    {
+      "name": "planos-alocacao",
+      "description": "Recursos planos-alocacao de CampoConecta — Compras."
+    },
+    {
+      "name": "compras",
+      "description": "Recursos compras de CampoConecta — Compras."
+    }
+  ],
+  "paths": {
+    "/propostas": {
+      "post": {
+        "tags": [
+          "propostas"
+        ],
+        "operationId": "enviarProposta",
+        "summary": "Enviar proposta",
+        "description": "Papéis permitidos: produtor. Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo. produtorId vem do token. Consulta Editais e Ofertas antes de persistir. Edital publicado, item existente, produto/unidade compatíveis, oferta ativa do produtor e quantidade positiva. Estado inválido: 409; dependência indisponível: 503 sem proposta gravada. Não reserva saldo. precoUnitario é proposta de conciliação ADR 0006.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Recurso criado e persistido.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri-reference"
+                },
+                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo.",
+                "example": "/api/v1/propostas/00000008-0000-4000-8000-000000000001"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Proposta"
+                },
+                "example": {
+                  "id": "00000008-0000-4000-8000-000000000001",
+                  "editalId": "00000003-0000-4000-8000-000000000001",
+                  "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                  "ofertaId": "00000006-0000-4000-8000-000000000001",
+                  "quantidade": {
+                    "valor": "100.00",
+                    "unidade": "kg"
+                  },
+                  "precoUnitario": {
+                    "valor": "5.00",
+                    "moeda": "BRL"
+                  },
+                  "produtorId": "00000005-0000-4000-8000-000000000001",
+                  "status": "ENVIADA",
+                  "snapshot": {
+                    "editalTitulo": "Chamada pública de alimentos",
+                    "escolaId": "00000002-0000-4000-8000-000000000001",
+                    "escolaNome": "Escola Exemplo",
+                    "produtorNome": "Produtor Exemplo",
+                    "produto": "Arroz",
+                    "snapshotAt": "2026-10-20T10:00:00-03:00"
+                  },
+                  "criadoEm": "2026-10-20T10:00:00-03:00"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Corpo completo conforme schema; campos desconhecidos geram 400.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropostaCriacao"
+              },
+              "example": {
+                "editalId": "00000003-0000-4000-8000-000000000001",
+                "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                "ofertaId": "00000006-0000-4000-8000-000000000001",
+                "quantidade": {
+                  "valor": "100.00",
+                  "unidade": "kg"
+                },
+                "precoUnitario": {
+                  "valor": "5.00",
+                  "moeda": "BRL"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "propostas"
+        ],
+        "operationId": "listarPropostas",
+        "summary": "Listar propostas",
+        "description": "Papéis permitidos: gestor, produtor. Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura. Ordenação estável por id ascendente. Filtros combinados com AND; autorização aplicada antes de contar/paginar.",
+        "x-papeis": [
+          "gestor",
+          "produtor"
+        ],
+        "x-autorizacao": "Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/Pagina"
+          },
+          {
+            "$ref": "#/components/parameters/Tamanho"
+          },
+          {
+            "name": "editalId",
+            "in": "query",
+            "required": false,
+            "description": "Edital da proposta.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "00000003-0000-4000-8000-000000000001"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Estado da proposta.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ENVIADA",
+                "ALOCADA",
+                "RETIRADA",
+                "REJEITADA"
+              ]
+            },
+            "example": "ENVIADA"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListarPropostasPagina"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000008-0000-4000-8000-000000000001",
+                      "editalId": "00000003-0000-4000-8000-000000000001",
+                      "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                      "ofertaId": "00000006-0000-4000-8000-000000000001",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "precoUnitario": {
+                        "valor": "5.00",
+                        "moeda": "BRL"
+                      },
+                      "produtorId": "00000005-0000-4000-8000-000000000001",
+                      "status": "ENVIADA",
+                      "snapshot": {
+                        "editalTitulo": "Chamada pública de alimentos",
+                        "escolaId": "00000002-0000-4000-8000-000000000001",
+                        "escolaNome": "Escola Exemplo",
+                        "produtorNome": "Produtor Exemplo",
+                        "produto": "Arroz",
+                        "snapshotAt": "2026-10-20T10:00:00-03:00"
+                      },
+                      "criadoEm": "2026-10-20T10:00:00-03:00"
+                    }
+                  ],
+                  "paginacao": {
+                    "pagina": 1,
+                    "tamanho": 20,
+                    "total": 1,
+                    "totalPaginas": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        }
+      }
+    },
+    "/propostas/{id}": {
+      "get": {
+        "tags": [
+          "propostas"
+        ],
+        "operationId": "obterProposta",
+        "summary": "Consultar proposta",
+        "description": "Papéis permitidos: gestor, produtor. Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura.",
+        "x-papeis": [
+          "gestor",
+          "produtor"
+        ],
+        "x-autorizacao": "Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Proposta"
+                },
+                "example": {
+                  "id": "00000008-0000-4000-8000-000000000001",
+                  "editalId": "00000003-0000-4000-8000-000000000001",
+                  "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                  "ofertaId": "00000006-0000-4000-8000-000000000001",
+                  "quantidade": {
+                    "valor": "100.00",
+                    "unidade": "kg"
+                  },
+                  "precoUnitario": {
+                    "valor": "5.00",
+                    "moeda": "BRL"
+                  },
+                  "produtorId": "00000005-0000-4000-8000-000000000001",
+                  "status": "ENVIADA",
+                  "snapshot": {
+                    "editalTitulo": "Chamada pública de alimentos",
+                    "escolaId": "00000002-0000-4000-8000-000000000001",
+                    "escolaNome": "Escola Exemplo",
+                    "produtorNome": "Produtor Exemplo",
+                    "produto": "Arroz",
+                    "snapshotAt": "2026-10-20T10:00:00-03:00"
+                  },
+                  "criadoEm": "2026-10-20T10:00:00-03:00"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        }
+      }
+    },
+    "/propostas/{id}/retiradas": {
+      "post": {
+        "tags": [
+          "propostas"
+        ],
+        "operationId": "retirarProposta",
+        "summary": "Registrar retirada da proposta",
+        "description": "Papéis permitidos: produtor. Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo. Somente ENVIADA → RETIRADA. Proposta comprometida por homologação não é retirada. Sugestões existentes não reservam a proposta; homologação as revalida. ALOCADA/RETIRADA/REJEITADA com nova chave: 409.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Proposta"
+                },
+                "example": {
+                  "id": "00000008-0000-4000-8000-000000000001",
+                  "editalId": "00000003-0000-4000-8000-000000000001",
+                  "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                  "ofertaId": "00000006-0000-4000-8000-000000000001",
+                  "quantidade": {
+                    "valor": "100.00",
+                    "unidade": "kg"
+                  },
+                  "precoUnitario": {
+                    "valor": "5.00",
+                    "moeda": "BRL"
+                  },
+                  "produtorId": "00000005-0000-4000-8000-000000000001",
+                  "status": "RETIRADA",
+                  "snapshot": {
+                    "editalTitulo": "Chamada pública de alimentos",
+                    "escolaId": "00000002-0000-4000-8000-000000000001",
+                    "escolaNome": "Escola Exemplo",
+                    "produtorNome": "Produtor Exemplo",
+                    "produto": "Arroz",
+                    "snapshotAt": "2026-10-20T10:00:00-03:00"
+                  },
+                  "criadoEm": "2026-10-20T10:00:00-03:00"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Corpo completo conforme schema; campos desconhecidos geram 400.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetiradaProposta"
+              },
+              "example": {
+                "motivo": "Produção indisponível"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/planos-alocacao": {
+      "post": {
+        "tags": [
+          "planos-alocacao"
+        ],
+        "operationId": "gerarPlano",
+        "summary": "Gerar plano sugerido",
+        "description": "Papéis permitidos: gestor. Exige papel gestor e recurso pertencente à prefeitura indicada por instituicaoId. A escola vinculada ao recurso deve pertencer à mesma prefeitura. Consulta edital publicado e ofertas atuais; indisponibilidade: 503 sem plano. Ordenação determinística pelos critérios do edital; não garante saldo e não cria compra. Ausência de propostas elegíveis permite plano com itens vazio. Catálogo concreto segue ADR 0006 proposto.",
+        "x-papeis": [
+          "gestor"
+        ],
+        "x-autorizacao": "Exige papel gestor e recurso pertencente à prefeitura indicada por instituicaoId. A escola vinculada ao recurso deve pertencer à mesma prefeitura.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Recurso criado e persistido.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri-reference"
+                },
+                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo.",
+                "example": "/api/v1/planos-alocacao/00000011-0000-4000-8000-000000000001"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Plano"
+                },
+                "example": {
+                  "id": "00000011-0000-4000-8000-000000000001",
+                  "editalId": "00000003-0000-4000-8000-000000000001",
+                  "gestorId": "00000012-0000-4000-8000-000000000001",
+                  "criteriosSnapshot": [
+                    {
+                      "codigo": "ORDEM_ENVIO",
+                      "ordem": "ASC",
+                      "parametros": {}
+                    }
+                  ],
+                  "snapshotAt": "2026-10-20T10:00:00-03:00",
+                  "status": "SUGERIDO",
+                  "versao": 1,
+                  "itens": [
+                    {
+                      "id": "00000009-0000-4000-8000-000000000001",
+                      "propostaId": "00000008-0000-4000-8000-000000000001",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "status": "PENDENTE"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Corpo completo conforme schema; campos desconhecidos geram 400.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanoCriacao"
+              },
+              "example": {
+                "editalId": "00000003-0000-4000-8000-000000000001"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "planos-alocacao"
+        ],
+        "operationId": "listarPlanos",
+        "summary": "Listar planos-alocacao",
+        "description": "Papéis permitidos: gestor. Exige papel gestor e recurso pertencente à prefeitura indicada por instituicaoId. A escola vinculada ao recurso deve pertencer à mesma prefeitura. Ordenação estável por id ascendente. Filtros combinados com AND; autorização aplicada antes de contar/paginar.",
+        "x-papeis": [
+          "gestor"
+        ],
+        "x-autorizacao": "Exige papel gestor e recurso pertencente à prefeitura indicada por instituicaoId. A escola vinculada ao recurso deve pertencer à mesma prefeitura.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/Pagina"
+          },
+          {
+            "$ref": "#/components/parameters/Tamanho"
+          },
+          {
+            "name": "editalId",
+            "in": "query",
+            "required": false,
+            "description": "Edital ao qual o plano pertence.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "00000003-0000-4000-8000-000000000001"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Situação do plano.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SUGERIDO",
+                "HOMOLOGADO"
+              ]
+            },
+            "example": "SUGERIDO"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListarPlanosPagina"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000011-0000-4000-8000-000000000001",
+                      "editalId": "00000003-0000-4000-8000-000000000001",
+                      "gestorId": "00000012-0000-4000-8000-000000000001",
+                      "criteriosSnapshot": [
+                        {
+                          "codigo": "ORDEM_ENVIO",
+                          "ordem": "ASC",
+                          "parametros": {}
+                        }
+                      ],
+                      "snapshotAt": "2026-10-20T10:00:00-03:00",
+                      "status": "SUGERIDO",
+                      "versao": 1,
+                      "itens": [
+                        {
+                          "id": "00000009-0000-4000-8000-000000000001",
+                          "propostaId": "00000008-0000-4000-8000-000000000001",
+                          "quantidade": {
+                            "valor": "100.00",
+                            "unidade": "kg"
+                          },
+                          "status": "PENDENTE"
+                        }
+                      ]
+                    }
+                  ],
+                  "paginacao": {
+                    "pagina": 1,
+                    "tamanho": 20,
+                    "total": 1,
+                    "totalPaginas": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        }
+      }
+    },
+    "/planos-alocacao/{id}": {
+      "get": {
+        "tags": [
+          "planos-alocacao"
+        ],
+        "operationId": "obterPlano",
+        "summary": "Consultar plano e resultado por item",
+        "description": "Papéis permitidos: gestor. Exige papel gestor e recurso pertencente à prefeitura indicada por instituicaoId. A escola vinculada ao recurso deve pertencer à mesma prefeitura. Após homologação, cada item não excluído inclui compraId e compraStatus atuais consultados localmente. Uma compra cancelada não cancela as demais.",
+        "x-papeis": [
+          "gestor"
+        ],
+        "x-autorizacao": "Exige papel gestor e recurso pertencente à prefeitura indicada por instituicaoId. A escola vinculada ao recurso deve pertencer à mesma prefeitura.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Plano"
+                },
+                "example": {
+                  "id": "00000011-0000-4000-8000-000000000001",
+                  "editalId": "00000003-0000-4000-8000-000000000001",
+                  "gestorId": "00000012-0000-4000-8000-000000000001",
+                  "criteriosSnapshot": [
+                    {
+                      "codigo": "ORDEM_ENVIO",
+                      "ordem": "ASC",
+                      "parametros": {}
+                    }
+                  ],
+                  "snapshotAt": "2026-10-20T10:00:00-03:00",
+                  "status": "SUGERIDO",
+                  "versao": 1,
+                  "itens": [
+                    {
+                      "id": "00000009-0000-4000-8000-000000000001",
+                      "propostaId": "00000008-0000-4000-8000-000000000001",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "status": "PENDENTE"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "planos-alocacao"
+        ],
+        "operationId": "ajustarPlano",
+        "summary": "Ajustar quantidades ou excluir itens",
+        "description": "Papéis permitidos: gestor. Exige papel gestor e recurso pertencente à prefeitura indicada por instituicaoId. A escola vinculada ao recurso deve pertencer à mesma prefeitura. Somente SUGERIDO. Cada item deve ter exatamente quantidade ou excluir=true, nunca ambos; IDs existentes, distintos. Ajuste não inclui novas propostas nem reativa excluídos. Quantidade não excede a proposta nem a demanda consultada. Null/campo desconhecido/formato inválido: 400; estado/versão/vínculo em conflito: 409.",
+        "x-papeis": [
+          "gestor"
+        ],
+        "x-autorizacao": "Exige papel gestor e recurso pertencente à prefeitura indicada por instituicaoId. A escola vinculada ao recurso deve pertencer à mesma prefeitura.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Plano"
+                },
+                "example": {
+                  "id": "00000011-0000-4000-8000-000000000001",
+                  "editalId": "00000003-0000-4000-8000-000000000001",
+                  "gestorId": "00000012-0000-4000-8000-000000000001",
+                  "criteriosSnapshot": [
+                    {
+                      "codigo": "ORDEM_ENVIO",
+                      "ordem": "ASC",
+                      "parametros": {}
+                    }
+                  ],
+                  "snapshotAt": "2026-10-20T10:00:00-03:00",
+                  "status": "SUGERIDO",
+                  "versao": 2,
+                  "itens": [
+                    {
+                      "id": "00000009-0000-4000-8000-000000000001",
+                      "propostaId": "00000008-0000-4000-8000-000000000001",
+                      "quantidade": {
+                        "valor": "90.00",
+                        "unidade": "kg"
+                      },
+                      "status": "PENDENTE"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Corpo completo conforme schema; campos desconhecidos geram 400.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanoAjuste"
+              },
+              "example": {
+                "versao": 1,
+                "itens": [
+                  {
+                    "id": "00000009-0000-4000-8000-000000000001",
+                    "quantidade": {
+                      "valor": "90.00",
+                      "unidade": "kg"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/planos-alocacao/{id}/homologacoes": {
+      "post": {
+        "tags": [
+          "planos-alocacao"
+        ],
+        "operationId": "homologarPlano",
+        "summary": "Homologar plano e iniciar compras",
+        "description": "Papéis permitidos: gestor. Exige papel gestor e recurso pertencente à prefeitura indicada por instituicaoId. A escola vinculada ao recurso deve pertencer à mesma prefeitura. SUGERIDO → HOMOLOGADO. Exige ao menos um item não excluído, propostas ainda elegíveis e versão atual. Em transação local única: plano, compras PENDENTE, uma SAGA por compra e outbox. Quantidades acumuladas homologadas da mesma proposta não podem exceder a quantidade proposta, mesmo entre planos; nova tentativa acima do limite: 409. Reservas finais pertencem à SAGA. Nova chave para plano já homologado: 409; mesma chave/conteúdo retorna o 202 original. Não existe POST /compras.",
+        "x-papeis": [
+          "gestor"
+        ],
+        "x-autorizacao": "Exige papel gestor e recurso pertencente à prefeitura indicada por instituicaoId. A escola vinculada ao recurso deve pertencer à mesma prefeitura.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Homologação persistida; compras e SAGAs iniciadas, com confirmação assíncrona pendente.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri-reference"
+                },
+                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo.",
+                "example": "/api/v1/planos-alocacao/00000011-0000-4000-8000-000000000001"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Plano"
+                },
+                "example": {
+                  "id": "00000011-0000-4000-8000-000000000001",
+                  "editalId": "00000003-0000-4000-8000-000000000001",
+                  "gestorId": "00000012-0000-4000-8000-000000000001",
+                  "criteriosSnapshot": [
+                    {
+                      "codigo": "ORDEM_ENVIO",
+                      "ordem": "ASC",
+                      "parametros": {}
+                    }
+                  ],
+                  "snapshotAt": "2026-10-20T10:00:00-03:00",
+                  "status": "HOMOLOGADO",
+                  "versao": 2,
+                  "itens": [
+                    {
+                      "id": "00000009-0000-4000-8000-000000000001",
+                      "propostaId": "00000008-0000-4000-8000-000000000001",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "status": "HOMOLOGADO",
+                      "compraId": "00000010-0000-4000-8000-000000000001",
+                      "compraStatus": "PENDENTE"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Corpo completo conforme schema; campos desconhecidos geram 400.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Homologacao"
+              },
+              "example": {
+                "versao": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "/compras": {
+      "get": {
+        "tags": [
+          "compras"
+        ],
+        "operationId": "listarCompras",
+        "summary": "Listar compras",
+        "description": "Papéis permitidos: gestor, escola, produtor. Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura. Ordenação estável por id ascendente. Filtros combinados com AND; autorização aplicada antes de contar/paginar. Listagem usa estado autoritativo; composição rica usa o acompanhamento.",
+        "x-papeis": [
+          "gestor",
+          "escola",
+          "produtor"
+        ],
+        "x-autorizacao": "Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/Pagina"
+          },
+          {
+            "$ref": "#/components/parameters/Tamanho"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Estado atual da compra.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDENTE",
+                "CONFIRMADA",
+                "RECEBIDA",
+                "CANCELADA"
+              ]
+            },
+            "example": "PENDENTE"
+          },
+          {
+            "name": "editalId",
+            "in": "query",
+            "required": false,
+            "description": "Edital de origem.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "00000003-0000-4000-8000-000000000001"
+          },
+          {
+            "name": "escolaId",
+            "in": "query",
+            "required": false,
+            "description": "Escola de destino, sem ampliar o escopo.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "00000002-0000-4000-8000-000000000001"
+          },
+          {
+            "name": "produtorId",
+            "in": "query",
+            "required": false,
+            "description": "Produtor, sem ampliar o escopo.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "00000005-0000-4000-8000-000000000001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListarComprasPagina"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000010-0000-4000-8000-000000000001",
+                      "planoItemId": "00000009-0000-4000-8000-000000000001",
+                      "propostaId": "00000008-0000-4000-8000-000000000001",
+                      "editalId": "00000003-0000-4000-8000-000000000001",
+                      "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                      "produtorId": "00000005-0000-4000-8000-000000000001",
+                      "escolaId": "00000002-0000-4000-8000-000000000001",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "precoUnitario": {
+                        "valor": "5.00",
+                        "moeda": "BRL"
+                      },
+                      "valorTotal": {
+                        "valor": "500.00",
+                        "moeda": "BRL"
+                      },
+                      "status": "PENDENTE",
+                      "estadoSaga": "EM_ANDAMENTO",
+                      "snapshot": {
+                        "editalTitulo": "Chamada pública de alimentos",
+                        "escolaId": "00000002-0000-4000-8000-000000000001",
+                        "escolaNome": "Escola Exemplo",
+                        "produtorNome": "Produtor Exemplo",
+                        "produto": "Arroz",
+                        "snapshotAt": "2026-10-20T10:00:00-03:00"
+                      },
+                      "versao": 1,
+                      "_links": {
+                        "self": {
+                          "href": "/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        }
+                      }
+                    }
+                  ],
+                  "paginacao": {
+                    "pagina": 1,
+                    "tamanho": 20,
+                    "total": 1,
+                    "totalPaginas": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        }
+      }
+    },
+    "/compras/{id}": {
+      "get": {
+        "tags": [
+          "compras"
+        ],
+        "operationId": "obterCompra",
+        "summary": "Consultar estado autoritativo da compra",
+        "description": "Papéis permitidos: gestor, escola, produtor. Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura. PENDENTE durante execução e compensação; CANCELADA somente após compensações confirmadas.  HATEOAS: self e acompanhamento para todo ator autorizado; liberacao-pagamento somente se RECEBIDA, liberação existente e papel gestor ou produtor. Escola nunca recebe esse link. Não adiciona links de outros serviços.",
+        "x-papeis": [
+          "gestor",
+          "escola",
+          "produtor"
+        ],
+        "x-autorizacao": "Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Compra"
+                },
+                "examples": {
+                  "pendente": {
+                    "summary": "Compra pendente; sem entrega ou liberação",
+                    "value": {
+                      "id": "00000010-0000-4000-8000-000000000001",
+                      "planoItemId": "00000009-0000-4000-8000-000000000001",
+                      "propostaId": "00000008-0000-4000-8000-000000000001",
+                      "editalId": "00000003-0000-4000-8000-000000000001",
+                      "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                      "produtorId": "00000005-0000-4000-8000-000000000001",
+                      "escolaId": "00000002-0000-4000-8000-000000000001",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "precoUnitario": {
+                        "valor": "5.00",
+                        "moeda": "BRL"
+                      },
+                      "valorTotal": {
+                        "valor": "500.00",
+                        "moeda": "BRL"
+                      },
+                      "status": "PENDENTE",
+                      "estadoSaga": "EM_ANDAMENTO",
+                      "snapshot": {
+                        "editalTitulo": "Chamada pública de alimentos",
+                        "escolaId": "00000002-0000-4000-8000-000000000001",
+                        "escolaNome": "Escola Exemplo",
+                        "produtorNome": "Produtor Exemplo",
+                        "produto": "Arroz",
+                        "snapshotAt": "2026-10-20T10:00:00-03:00"
+                      },
+                      "versao": 1,
+                      "_links": {
+                        "self": {
+                          "href": "/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        }
+                      }
+                    }
+                  },
+                  "recebida": {
+                    "summary": "Compra recebida, consultada pelo produtor autorizado",
+                    "value": {
+                      "id": "00000010-0000-4000-8000-000000000001",
+                      "planoItemId": "00000009-0000-4000-8000-000000000001",
+                      "propostaId": "00000008-0000-4000-8000-000000000001",
+                      "editalId": "00000003-0000-4000-8000-000000000001",
+                      "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                      "produtorId": "00000005-0000-4000-8000-000000000001",
+                      "escolaId": "00000002-0000-4000-8000-000000000001",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "precoUnitario": {
+                        "valor": "5.00",
+                        "moeda": "BRL"
+                      },
+                      "valorTotal": {
+                        "valor": "500.00",
+                        "moeda": "BRL"
+                      },
+                      "status": "RECEBIDA",
+                      "estadoSaga": "CONCLUIDA",
+                      "snapshot": {
+                        "editalTitulo": "Chamada pública de alimentos",
+                        "escolaId": "00000002-0000-4000-8000-000000000001",
+                        "escolaNome": "Escola Exemplo",
+                        "produtorNome": "Produtor Exemplo",
+                        "produto": "Arroz",
+                        "snapshotAt": "2026-10-20T10:00:00-03:00"
+                      },
+                      "versao": 1,
+                      "_links": {
+                        "self": {
+                          "href": "/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "liberacao-pagamento": {
+                          "href": "/api/v1/compras/00000010-0000-4000-8000-000000000001/liberacao-pagamento",
+                          "method": "GET"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        }
+      }
+    },
+    "/compras/{id}/acompanhamento": {
+      "get": {
+        "tags": [
+          "compras"
+        ],
+        "operationId": "obterAcompanhamento",
+        "summary": "Consultar projeção de acompanhamento",
+        "description": "Papéis permitidos: gestor, escola, produtor. Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura. Autoriza pelo modelo de escrita antes de ler a projeção. Meta de atraso de 5 s, ainda não medida. Compra existente sem projeção inicial: 503 com Retry-After; compra inexistente: 404. updatedAt indica instante da projeção, não garantia de atualidade. Campo entrega é omitido até haver agendamento.",
+        "x-papeis": [
+          "gestor",
+          "escola",
+          "produtor"
+        ],
+        "x-autorizacao": "Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcompanhamentoCompra"
+                },
+                "example": {
+                  "compraId": "00000010-0000-4000-8000-000000000001",
+                  "editalId": "00000003-0000-4000-8000-000000000001",
+                  "editalTitulo": "Chamada pública de alimentos",
+                  "produtorId": "00000005-0000-4000-8000-000000000001",
+                  "produtorNome": "Produtor Exemplo",
+                  "escolaId": "00000002-0000-4000-8000-000000000001",
+                  "escolaNome": "Escola Exemplo",
+                  "produto": "Arroz",
+                  "quantidade": {
+                    "valor": "100.00",
+                    "unidade": "kg"
+                  },
+                  "status": "CONFIRMADA",
+                  "etapaSaga": "CONCLUIDA",
+                  "entrega": {
+                    "id": "00000015-0000-4000-8000-000000000001",
+                    "status": "AGENDADA",
+                    "data": "2026-11-25"
+                  },
+                  "pagamento": {
+                    "status": "AGUARDANDO_RECEBIMENTO"
+                  },
+                  "updatedAt": "2026-10-20T10:00:00-03:00",
+                  "versao": 4
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        }
+      }
+    },
+    "/compras/{id}/liberacao-pagamento": {
+      "get": {
+        "tags": [
+          "compras"
+        ],
+        "operationId": "obterLiberacaoPagamento",
+        "summary": "Consultar liberação de pagamento",
+        "description": "Papéis permitidos: gestor, produtor. Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura. 404 se compra não existe ou a liberação ainda não foi registrada, com code específico LIBERACAO_NAO_REGISTRADA neste último caso. Só EntregaRecebida autoriza o registro interno único; não representa transferência bancária.",
+        "x-papeis": [
+          "gestor",
+          "produtor"
+        ],
+        "x-autorizacao": "Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "Identificador propagado."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiberacaoPagamento"
+                },
+                "example": {
+                  "id": "00000016-0000-4000-8000-000000000001",
+                  "compraId": "00000010-0000-4000-8000-000000000001",
+                  "valor": {
+                    "valor": "500.00",
+                    "moeda": "BRL"
+                  },
+                  "liberadoEm": "2026-11-25T10:30:00-03:00"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "503": {
+            "$ref": "#/components/responses/Erro503"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT OIDC propagado internamente. Claims: sub, papel (gestor/escola/produtor), instituicaoId ou produtorId. Autenticação não substitui autorização por recurso."
+      }
+    },
+    "schemas": {
+      "Quantidade": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "valor": {
+            "type": "string",
+            "pattern": "^(0\\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,11}\\.[0-9]{2})$",
+            "description": "Decimal exato estritamente positivo, com duas casas."
+          },
+          "unidade": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20,
+            "description": "Unidade compatível com o item/oferta; conversão implícita é proibida."
+          }
+        },
+        "required": [
+          "valor",
+          "unidade"
+        ]
+      },
+      "Dinheiro": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "valor": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,11})\\.[0-9]{2}$",
+            "description": "Decimal exato não negativo, com duas casas, transmitido como string. Não usar float."
+          },
+          "moeda": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "description": "Código de moeda com três letras; operações da mesma compra usam a mesma moeda."
+          }
+        },
+        "required": [
+          "valor",
+          "moeda"
+        ]
+      },
+      "Erro": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Código estável legível por máquina."
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Mensagem sem detalhes internos."
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "campo": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Caminho do campo ou contexto."
+                },
+                "motivo": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Motivo do erro."
+                }
+              },
+              "required": [
+                "campo",
+                "motivo"
+              ]
+            },
+            "minItems": 0
+          },
+          "correlationId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "details",
+          "correlationId"
+        ]
+      },
+      "Paginacao": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "pagina": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "tamanho": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalPaginas": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "pagina",
+          "tamanho",
+          "total",
+          "totalPaginas"
+        ]
+      },
+      "Versao": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "SnapshotProposta": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "editalTitulo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Título histórico do edital."
+          },
+          "escolaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "escolaNome": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Nome histórico da escola."
+          },
+          "produtorNome": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Nome histórico do produtor."
+          },
+          "produto": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Produto validado."
+          },
+          "snapshotAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "editalTitulo",
+          "escolaId",
+          "escolaNome",
+          "produtorNome",
+          "produto",
+          "snapshotAt"
+        ]
+      },
+      "PropostaCriacao": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "editalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "itemEditalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ofertaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantidade": {
+            "$ref": "#/components/schemas/Quantidade"
+          },
+          "precoUnitario": {
+            "$ref": "#/components/schemas/Dinheiro"
+          }
+        },
+        "required": [
+          "editalId",
+          "itemEditalId",
+          "ofertaId",
+          "quantidade",
+          "precoUnitario"
+        ],
+        "examples": [
+          {
+            "editalId": "00000003-0000-4000-8000-000000000001",
+            "itemEditalId": "00000004-0000-4000-8000-000000000001",
+            "ofertaId": "00000006-0000-4000-8000-000000000001",
+            "quantidade": {
+              "valor": "100.00",
+              "unidade": "kg"
+            },
+            "precoUnitario": {
+              "valor": "5.00",
+              "moeda": "BRL"
+            }
+          }
+        ]
+      },
+      "Proposta": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "editalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "itemEditalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ofertaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantidade": {
+            "$ref": "#/components/schemas/Quantidade"
+          },
+          "precoUnitario": {
+            "$ref": "#/components/schemas/Dinheiro"
+          },
+          "produtorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ENVIADA",
+              "ALOCADA",
+              "RETIRADA",
+              "REJEITADA"
+            ]
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/SnapshotProposta"
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "editalId",
+          "itemEditalId",
+          "ofertaId",
+          "quantidade",
+          "precoUnitario",
+          "produtorId",
+          "status",
+          "snapshot",
+          "criadoEm"
+        ],
+        "examples": [
+          {
+            "id": "00000008-0000-4000-8000-000000000001",
+            "editalId": "00000003-0000-4000-8000-000000000001",
+            "itemEditalId": "00000004-0000-4000-8000-000000000001",
+            "ofertaId": "00000006-0000-4000-8000-000000000001",
+            "quantidade": {
+              "valor": "100.00",
+              "unidade": "kg"
+            },
+            "precoUnitario": {
+              "valor": "5.00",
+              "moeda": "BRL"
+            },
+            "produtorId": "00000005-0000-4000-8000-000000000001",
+            "status": "ENVIADA",
+            "snapshot": {
+              "editalTitulo": "Chamada pública de alimentos",
+              "escolaId": "00000002-0000-4000-8000-000000000001",
+              "escolaNome": "Escola Exemplo",
+              "produtorNome": "Produtor Exemplo",
+              "produto": "Arroz",
+              "snapshotAt": "2026-10-20T10:00:00-03:00"
+            },
+            "criadoEm": "2026-10-20T10:00:00-03:00"
+          }
+        ]
+      },
+      "RetiradaProposta": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "motivo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Justificativa opcional da retirada."
+          }
+        },
+        "required": []
+      },
+      "PlanoItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "propostaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantidade": {
+            "$ref": "#/components/schemas/Quantidade"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDENTE",
+              "HOMOLOGADO",
+              "EXCLUIDO"
+            ]
+          },
+          "compraId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "compraStatus": {
+            "type": "string",
+            "enum": [
+              "PENDENTE",
+              "CONFIRMADA",
+              "RECEBIDA",
+              "CANCELADA"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "propostaId",
+          "quantidade",
+          "status"
+        ],
+        "examples": [
+          {
+            "id": "00000009-0000-4000-8000-000000000001",
+            "propostaId": "00000008-0000-4000-8000-000000000001",
+            "quantidade": {
+              "valor": "100.00",
+              "unidade": "kg"
+            },
+            "status": "PENDENTE"
+          }
+        ]
+      },
+      "CriterioAplicado": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "codigo": {
+            "type": "string",
+            "enum": [
+              "ORDEM_ENVIO",
+              "PRECO_UNITARIO"
+            ],
+            "description": "Catálogo inicial proposto no ADR 0006: criadoEm ou preço unitário da proposta. Código desconhecido: 400."
+          },
+          "ordem": {
+            "type": "string",
+            "enum": [
+              "ASC",
+              "DESC"
+            ]
+          },
+          "parametros": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {},
+            "required": [],
+            "description": "Sem parâmetros adicionais nestas estratégias; chaves desconhecidas: 400."
+          }
+        },
+        "required": [
+          "codigo",
+          "ordem",
+          "parametros"
+        ]
+      },
+      "PlanoCriacao": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "editalId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "editalId"
+        ]
+      },
+      "Plano": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "editalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "gestorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "criteriosSnapshot": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CriterioAplicado"
+            },
+            "minItems": 1
+          },
+          "snapshotAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SUGERIDO",
+              "HOMOLOGADO"
+            ]
+          },
+          "versao": {
+            "$ref": "#/components/schemas/Versao"
+          },
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanoItem"
+            },
+            "minItems": 0
+          }
+        },
+        "required": [
+          "id",
+          "editalId",
+          "gestorId",
+          "criteriosSnapshot",
+          "snapshotAt",
+          "status",
+          "versao",
+          "itens"
+        ],
+        "examples": [
+          {
+            "id": "00000011-0000-4000-8000-000000000001",
+            "editalId": "00000003-0000-4000-8000-000000000001",
+            "gestorId": "00000012-0000-4000-8000-000000000001",
+            "criteriosSnapshot": [
+              {
+                "codigo": "ORDEM_ENVIO",
+                "ordem": "ASC",
+                "parametros": {}
+              }
+            ],
+            "snapshotAt": "2026-10-20T10:00:00-03:00",
+            "status": "SUGERIDO",
+            "versao": 1,
+            "itens": [
+              {
+                "id": "00000009-0000-4000-8000-000000000001",
+                "propostaId": "00000008-0000-4000-8000-000000000001",
+                "quantidade": {
+                  "valor": "100.00",
+                  "unidade": "kg"
+                },
+                "status": "PENDENTE"
+              }
+            ]
+          }
+        ]
+      },
+      "PlanoItemAjuste": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantidade": {
+            "$ref": "#/components/schemas/Quantidade"
+          },
+          "excluir": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "oneOf": [
+          {
+            "required": [
+              "quantidade"
+            ],
+            "properties": {
+              "quantidade": {
+                "$ref": "#/components/schemas/Quantidade"
+              }
+            }
+          },
+          {
+            "required": [
+              "excluir"
+            ],
+            "properties": {
+              "excluir": {
+                "type": "boolean",
+                "const": true
+              }
+            }
+          }
+        ]
+      },
+      "PlanoAjuste": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "versao": {
+            "$ref": "#/components/schemas/Versao"
+          },
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanoItemAjuste"
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "versao",
+          "itens"
+        ]
+      },
+      "Homologacao": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "versao": {
+            "$ref": "#/components/schemas/Versao"
+          }
+        },
+        "required": [
+          "versao"
+        ]
+      },
+      "Compra": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planoItemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "propostaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "editalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "itemEditalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "produtorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "escolaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantidade": {
+            "$ref": "#/components/schemas/Quantidade"
+          },
+          "precoUnitario": {
+            "$ref": "#/components/schemas/Dinheiro"
+          },
+          "valorTotal": {
+            "$ref": "#/components/schemas/Dinheiro"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDENTE",
+              "CONFIRMADA",
+              "RECEBIDA",
+              "CANCELADA"
+            ]
+          },
+          "estadoSaga": {
+            "type": "string",
+            "enum": [
+              "EM_ANDAMENTO",
+              "COMPENSANDO",
+              "CONCLUIDA",
+              "CANCELADA"
+            ]
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/SnapshotProposta"
+          },
+          "versao": {
+            "$ref": "#/components/schemas/Versao"
+          },
+          "_links": {
+            "$ref": "#/components/schemas/LinksCompra"
+          }
+        },
+        "required": [
+          "id",
+          "planoItemId",
+          "propostaId",
+          "editalId",
+          "itemEditalId",
+          "produtorId",
+          "escolaId",
+          "quantidade",
+          "precoUnitario",
+          "valorTotal",
+          "status",
+          "estadoSaga",
+          "snapshot",
+          "versao",
+          "_links"
+        ],
+        "examples": [
+          {
+            "id": "00000010-0000-4000-8000-000000000001",
+            "planoItemId": "00000009-0000-4000-8000-000000000001",
+            "propostaId": "00000008-0000-4000-8000-000000000001",
+            "editalId": "00000003-0000-4000-8000-000000000001",
+            "itemEditalId": "00000004-0000-4000-8000-000000000001",
+            "produtorId": "00000005-0000-4000-8000-000000000001",
+            "escolaId": "00000002-0000-4000-8000-000000000001",
+            "quantidade": {
+              "valor": "100.00",
+              "unidade": "kg"
+            },
+            "precoUnitario": {
+              "valor": "5.00",
+              "moeda": "BRL"
+            },
+            "valorTotal": {
+              "valor": "500.00",
+              "moeda": "BRL"
+            },
+            "status": "PENDENTE",
+            "estadoSaga": "EM_ANDAMENTO",
+            "snapshot": {
+              "editalTitulo": "Chamada pública de alimentos",
+              "escolaId": "00000002-0000-4000-8000-000000000001",
+              "escolaNome": "Escola Exemplo",
+              "produtorNome": "Produtor Exemplo",
+              "produto": "Arroz",
+              "snapshotAt": "2026-10-20T10:00:00-03:00"
+            },
+            "versao": 1,
+            "_links": {
+              "self": {
+                "href": "/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                "method": "GET"
+              },
+              "acompanhamento": {
+                "href": "/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                "method": "GET"
+              }
+            }
+          }
+        ]
+      },
+      "EntregaAcompanhamento": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "AGENDADA",
+              "RECEBIDA",
+              "CANCELADA"
+            ]
+          },
+          "data": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "PagamentoAcompanhamento": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "AGUARDANDO_RECEBIMENTO",
+              "LIBERADO"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "AcompanhamentoCompra": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "compraId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "editalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "editalTitulo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Título histórico."
+          },
+          "produtorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "produtorNome": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Nome histórico."
+          },
+          "escolaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "escolaNome": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Nome histórico."
+          },
+          "produto": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Produto histórico."
+          },
+          "quantidade": {
+            "$ref": "#/components/schemas/Quantidade"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDENTE",
+              "CONFIRMADA",
+              "RECEBIDA",
+              "CANCELADA"
+            ]
+          },
+          "etapaSaga": {
+            "type": "string",
+            "enum": [
+              "EM_ANDAMENTO",
+              "COMPENSANDO",
+              "CONCLUIDA",
+              "CANCELADA"
+            ]
+          },
+          "entrega": {
+            "$ref": "#/components/schemas/EntregaAcompanhamento"
+          },
+          "pagamento": {
+            "$ref": "#/components/schemas/PagamentoAcompanhamento"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "versao": {
+            "$ref": "#/components/schemas/Versao"
+          }
+        },
+        "required": [
+          "compraId",
+          "editalId",
+          "editalTitulo",
+          "produtorId",
+          "produtorNome",
+          "escolaId",
+          "escolaNome",
+          "produto",
+          "quantidade",
+          "status",
+          "etapaSaga",
+          "pagamento",
+          "updatedAt",
+          "versao"
+        ],
+        "examples": [
+          {
+            "compraId": "00000010-0000-4000-8000-000000000001",
+            "editalId": "00000003-0000-4000-8000-000000000001",
+            "editalTitulo": "Chamada pública de alimentos",
+            "produtorId": "00000005-0000-4000-8000-000000000001",
+            "produtorNome": "Produtor Exemplo",
+            "escolaId": "00000002-0000-4000-8000-000000000001",
+            "escolaNome": "Escola Exemplo",
+            "produto": "Arroz",
+            "quantidade": {
+              "valor": "100.00",
+              "unidade": "kg"
+            },
+            "status": "CONFIRMADA",
+            "etapaSaga": "CONCLUIDA",
+            "entrega": {
+              "id": "00000015-0000-4000-8000-000000000001",
+              "status": "AGENDADA",
+              "data": "2026-11-25"
+            },
+            "pagamento": {
+              "status": "AGUARDANDO_RECEBIMENTO"
+            },
+            "updatedAt": "2026-10-20T10:00:00-03:00",
+            "versao": 4
+          }
+        ]
+      },
+      "LiberacaoPagamento": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "compraId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "valor": {
+            "$ref": "#/components/schemas/Dinheiro"
+          },
+          "liberadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "compraId",
+          "valor",
+          "liberadoEm"
+        ],
+        "examples": [
+          {
+            "id": "00000016-0000-4000-8000-000000000001",
+            "compraId": "00000010-0000-4000-8000-000000000001",
+            "valor": {
+              "valor": "500.00",
+              "moeda": "BRL"
+            },
+            "liberadoEm": "2026-11-25T10:30:00-03:00"
+          }
+        ]
+      },
+      "ListarPropostasPagina": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Proposta"
+            },
+            "minItems": 0
+          },
+          "paginacao": {
+            "$ref": "#/components/schemas/Paginacao"
+          }
+        },
+        "required": [
+          "items",
+          "paginacao"
+        ]
+      },
+      "ListarPlanosPagina": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Plano"
+            },
+            "minItems": 0
+          },
+          "paginacao": {
+            "$ref": "#/components/schemas/Paginacao"
+          }
+        },
+        "required": [
+          "items",
+          "paginacao"
+        ]
+      },
+      "ListarComprasPagina": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Compra"
+            },
+            "minItems": 0
+          },
+          "paginacao": {
+            "$ref": "#/components/schemas/Paginacao"
+          }
+        },
+        "required": [
+          "items",
+          "paginacao"
+        ]
+      },
+      "LinkCompra": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "href": {
+            "type": "string",
+            "format": "uri-reference",
+            "pattern": "^/api/v1/compras/[0-9a-f-]+(/acompanhamento|/liberacao-pagamento)?$"
+          },
+          "method": {
+            "type": "string",
+            "const": "GET"
+          }
+        },
+        "required": [
+          "href",
+          "method"
+        ]
+      },
+      "LinksCompra": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "self": {
+            "$ref": "#/components/schemas/LinkCompra"
+          },
+          "acompanhamento": {
+            "$ref": "#/components/schemas/LinkCompra"
+          },
+          "liberacao-pagamento": {
+            "$ref": "#/components/schemas/LinkCompra"
+          }
+        },
+        "required": [
+          "self",
+          "acompanhamento"
+        ]
+      }
+    },
+    "parameters": {
+      "Id": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "UUID do recurso no caminho.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "example": "00000001-0000-4000-8000-000000000001"
+      },
+      "CorrelationId": {
+        "name": "X-Correlation-Id",
+        "in": "header",
+        "required": false,
+        "description": "UUID de rastreamento; gerado se ausente e devolvido na resposta.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "example": "00000099-0000-4000-8000-000000000001"
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "description": "UUID gerado pelo cliente. Escopo: sub autenticado + método + caminho normalizado. Reenvio idêntico retorna status/corpo/Location originais; conteúdo diferente ou operação ainda em curso: 409. Retenção mínima proposta: 30 dias.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "example": "00000098-0000-4000-8000-000000000001"
+      },
+      "Pagina": {
+        "name": "pagina",
+        "in": "query",
+        "description": "Página iniciada em 1; além da última retorna items vazio.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "example": 1
+      },
+      "Tamanho": {
+        "name": "tamanho",
+        "in": "query",
+        "description": "Limite de itens por página; valores fora do intervalo geram 400.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 20
+        },
+        "example": 20
+      }
+    },
+    "responses": {
+      "Erro400": {
+        "description": "Corpo, parâmetro ou cabeçalho inválido, ausente ou não suportado.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "REQUISICAO_INVALIDA",
+              "message": "Corpo, parâmetro ou cabeçalho inválido, ausente ou não suportado.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "Erro401": {
+        "description": "Token ausente, expirado ou inválido.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          },
+          "WWW-Authenticate": {
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer",
+            "description": "Desafio de autenticação Bearer."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "NAO_AUTENTICADO",
+              "message": "Token ausente, expirado ou inválido.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "Erro403": {
+        "description": "Papel ou vínculo não autoriza esta operação.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "ACESSO_NEGADO",
+              "message": "Papel ou vínculo não autoriza esta operação.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "Erro404": {
+        "description": "Recurso identificado não existe.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "RECURSO_NAO_ENCONTRADO",
+              "message": "Recurso identificado não existe.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "Erro409": {
+        "description": "Estado, versão, unicidade, vínculo de negócio ou chave idempotente em conflito.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "CONFLITO_DE_ESTADO",
+              "message": "Estado, versão, unicidade, vínculo de negócio ou chave idempotente em conflito.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "Erro503": {
+        "description": "Dependência necessária indisponível. Não é garantia de ausência de efeito após perda da resposta; repetir com a mesma chave.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          },
+          "Retry-After": {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "example": 5,
+            "description": "Espera sugerida, em segundos, antes da repetição."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "DEPENDENCIA_INDISPONIVEL",
+              "message": "Dependência necessária indisponível. Não é garantia de ausência de efeito após perda da resposta; repetir com a mesma chave.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      }
+    }
+  }
+}

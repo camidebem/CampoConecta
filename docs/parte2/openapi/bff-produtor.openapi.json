@@ -1,0 +1,5675 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CampoConecta — BFF produtor",
+    "version": "1.0.0",
+    "description": "Contrato externo do CampoConecta. Acesso pelo gateway, com operações e apresentação específicas do cliente. Decisões de integração e acesso nos ADRs 0006 e 0007. Componentes ainda não implantados."
+  },
+  "servers": [
+    {
+      "url": "https://api.campoconecta.example/produtor/api/v1",
+      "description": "Origem ilustrativa; gateway termina TLS e remove apenas o prefixo do cliente."
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "editais",
+      "description": "Operações autorizadas do serviço editais."
+    },
+    {
+      "name": "ofertas",
+      "description": "Operações autorizadas do serviço ofertas."
+    },
+    {
+      "name": "compras",
+      "description": "Operações autorizadas do serviço compras."
+    },
+    {
+      "name": "entregas",
+      "description": "Operações autorizadas do serviço entregas."
+    },
+    {
+      "name": "agregacoes",
+      "description": "Composições específicas do cliente."
+    }
+  ],
+  "paths": {
+    "/editais": {
+      "get": {
+        "tags": [
+          "editais"
+        ],
+        "operationId": "produtor_listarEditais",
+        "summary": "Listar editais",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: gestor, escola, produtor. Gestor: editais da própria prefeitura; escola: editais publicados/encerrados com item da sua escola; produtor: somente publicados/encerrados. Ordenação estável por id ascendente. Filtros combinados com AND; autorização aplicada antes de contar/paginar. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço. No aplicativo, pagina/tamanho são inválidos: cursor fixo de até 10 registros (items+removidos) por resposta. BFF materializa snapshot autorizado em cache técnico, ordenado por id; filtra mudanças observadas no intervalo incremental. Não repassa cursor ou atualizadoDesde para serviços que não os suportam. Cache é volátil, não banco de negócio; expiração/reinício: 410 e sincronização completa.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Gestor: editais da própria prefeitura; escola: editais publicados/encerrados com item da sua escola; produtor: somente publicados/encerrados.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EditaisCorrelationId"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Situação; não amplia o escopo autorizado.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "RASCUNHO",
+                "PUBLICADO",
+                "ENCERRADO"
+              ]
+            },
+            "example": "PUBLICADO"
+          },
+          {
+            "name": "prefeituraId",
+            "in": "query",
+            "required": false,
+            "description": "Prefeitura emitente.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "00000001-0000-4000-8000-000000000001"
+          },
+          {
+            "name": "produto",
+            "in": "query",
+            "required": false,
+            "description": "Igualdade de produto de pelo menos um item.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Nome do produto."
+            },
+            "example": "Arroz"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/AtualizadoDesde"
+          },
+          {
+            "$ref": "#/components/parameters/IfNoneMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sincronizacaoeditais"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000003-0000-4000-8000-000000000001",
+                      "titulo": "Chamada pública de alimentos",
+                      "status": "PUBLICADO",
+                      "prazoEntrega": "2026-11-25T17:00:00-03:00",
+                      "produtos": [
+                        "Arroz"
+                      ]
+                    }
+                  ],
+                  "removidos": [],
+                  "sincronizadoEm": "2026-10-20T10:00:00-03:00"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Representação privada não modificada após revalidar identidade/vínculo; sem corpo.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              },
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/EditaisErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/EditaisErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/EditaisErro403"
+          },
+          "410": {
+            "$ref": "#/components/responses/Erro410"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/EditaisErro503"
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "editais",
+            "metodo": "GET",
+            "caminho": "/api/v1/editais"
+          }
+        ]
+      }
+    },
+    "/editais/{id}": {
+      "get": {
+        "tags": [
+          "editais"
+        ],
+        "operationId": "produtor_obterEdital",
+        "summary": "Consultar edital",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: gestor, escola, produtor. Mesmo escopo da listagem; produtor não acessa rascunho. O corpo inclui todos os itens autorizados para o ator; escola recebe apenas seus itens. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Mesmo escopo da listagem; produtor não acessa rascunho. O corpo inclui todos os itens autorizados para o ator; escola recebe apenas seus itens.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EditaisCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/EditaisId"
+          },
+          {
+            "$ref": "#/components/parameters/IfNoneMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditaisEdital"
+                },
+                "example": {
+                  "id": "00000003-0000-4000-8000-000000000001",
+                  "prefeituraId": "00000001-0000-4000-8000-000000000001",
+                  "titulo": "Chamada pública de alimentos",
+                  "prazoEntrega": "2026-11-25T17:00:00-03:00",
+                  "criterios": [
+                    {
+                      "codigo": "ORDEM_ENVIO",
+                      "ordem": "ASC",
+                      "parametros": {}
+                    }
+                  ],
+                  "itens": [
+                    {
+                      "id": "00000004-0000-4000-8000-000000000001",
+                      "escolaId": "00000002-0000-4000-8000-000000000001",
+                      "produto": "Arroz",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "saldo": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "versao": 1
+                    }
+                  ],
+                  "status": "PUBLICADO",
+                  "versao": 1
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Representação privada não modificada após revalidar identidade/vínculo; sem corpo.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              },
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/EditaisErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/EditaisErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/EditaisErro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/EditaisErro404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/EditaisErro503"
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "editais",
+            "metodo": "GET",
+            "caminho": "/api/v1/editais/{id}"
+          }
+        ]
+      }
+    },
+    "/produtores": {
+      "post": {
+        "tags": [
+          "ofertas"
+        ],
+        "operationId": "produtor_criarProdutor",
+        "summary": "Cadastrar produtor",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: produtor. O servidor atribui como id o produtorId do token previamente provisionado; cadastro existente: 409. Não permite cadastrar outro produtor. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "O servidor atribui como id o produtorId do token previamente provisionado; cadastro existente: 409. Não permite cadastrar outro produtor.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/OfertasCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/OfertasIdempotencyKey"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Recurso criado e persistido.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri-reference"
+                },
+                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo.",
+                "example": "/produtor/api/v1/produtores/00000005-0000-4000-8000-000000000001"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfertasProdutor"
+                },
+                "example": {
+                  "id": "00000005-0000-4000-8000-000000000001",
+                  "nome": "Produtor Exemplo",
+                  "documento": "12345678901",
+                  "email": "produtor@example.org",
+                  "ativo": true,
+                  "versao": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/OfertasErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/OfertasErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/OfertasErro403"
+          },
+          "409": {
+            "$ref": "#/components/responses/OfertasErro409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Erro413"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/OfertasErro503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Corpo completo conforme schema; campos desconhecidos geram 400.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfertasProdutorCriacao"
+              },
+              "example": {
+                "nome": "Produtor Exemplo",
+                "documento": "12345678901",
+                "email": "produtor@example.org"
+              }
+            }
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "ofertas",
+            "metodo": "POST",
+            "caminho": "/api/v1/produtores"
+          }
+        ]
+      }
+    },
+    "/produtores/{id}": {
+      "get": {
+        "tags": [
+          "ofertas"
+        ],
+        "operationId": "produtor_obterProdutor",
+        "summary": "Consultar produtor",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: produtor. Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/OfertasCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/OfertasId"
+          },
+          {
+            "$ref": "#/components/parameters/IfNoneMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfertasProdutor"
+                },
+                "example": {
+                  "id": "00000005-0000-4000-8000-000000000001",
+                  "nome": "Produtor Exemplo",
+                  "documento": "12345678901",
+                  "email": "produtor@example.org",
+                  "ativo": true,
+                  "versao": 1
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Representação privada não modificada após revalidar identidade/vínculo; sem corpo.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              },
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/OfertasErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/OfertasErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/OfertasErro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/OfertasErro404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/OfertasErro503"
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "ofertas",
+            "metodo": "GET",
+            "caminho": "/api/v1/produtores/{id}"
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "ofertas"
+        ],
+        "operationId": "produtor_ajustarProdutor",
+        "summary": "Atualizar cadastro do produtor",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: produtor. Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo. Documento imutável. Inativar impede novas ofertas/propostas/reservas, preservando compromissos existentes. Versão diferente: 409. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/OfertasCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/OfertasId"
+          },
+          {
+            "$ref": "#/components/parameters/OfertasIdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfertasProdutor"
+                },
+                "example": {
+                  "id": "00000005-0000-4000-8000-000000000001",
+                  "nome": "Produtor Atualizado",
+                  "documento": "12345678901",
+                  "email": "produtor@example.org",
+                  "ativo": true,
+                  "versao": 2
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/OfertasErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/OfertasErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/OfertasErro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/OfertasErro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/OfertasErro409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Erro413"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/OfertasErro503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Corpo completo conforme schema; campos desconhecidos geram 400.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfertasProdutorAjuste"
+              },
+              "example": {
+                "versao": 1,
+                "nome": "Produtor Atualizado"
+              }
+            }
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "ofertas",
+            "metodo": "PATCH",
+            "caminho": "/api/v1/produtores/{id}"
+          }
+        ]
+      }
+    },
+    "/ofertas": {
+      "post": {
+        "tags": [
+          "ofertas"
+        ],
+        "operationId": "produtor_criarOferta",
+        "summary": "Criar oferta",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: produtor. Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo. Produtor deve estar ativo. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/OfertasCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/OfertasIdempotencyKey"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Recurso criado e persistido.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri-reference"
+                },
+                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo.",
+                "example": "/produtor/api/v1/ofertas/00000006-0000-4000-8000-000000000001"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfertasOferta"
+                },
+                "example": {
+                  "id": "00000006-0000-4000-8000-000000000001",
+                  "produtorId": "00000005-0000-4000-8000-000000000001",
+                  "produto": "Arroz",
+                  "quantidadeDisponivel": {
+                    "valor": "200.00",
+                    "unidade": "kg"
+                  },
+                  "ativa": true,
+                  "versao": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/OfertasErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/OfertasErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/OfertasErro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/OfertasErro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/OfertasErro409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Erro413"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/OfertasErro503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Corpo completo conforme schema; campos desconhecidos geram 400.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfertasOfertaCriacao"
+              },
+              "example": {
+                "produtorId": "00000005-0000-4000-8000-000000000001",
+                "produto": "Arroz",
+                "quantidadeDisponivel": {
+                  "valor": "200.00",
+                  "unidade": "kg"
+                }
+              }
+            }
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "ofertas",
+            "metodo": "POST",
+            "caminho": "/api/v1/ofertas"
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "ofertas"
+        ],
+        "operationId": "produtor_listarOfertas",
+        "summary": "Listar ofertas",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: produtor. Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo. Ordenação estável por id ascendente. Filtros combinados com AND; autorização aplicada antes de contar/paginar. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço. No aplicativo, pagina/tamanho são inválidos: cursor fixo de até 10 registros (items+removidos) por resposta. BFF materializa snapshot autorizado em cache técnico, ordenado por id; filtra mudanças observadas no intervalo incremental. Não repassa cursor ou atualizadoDesde para serviços que não os suportam. Cache é volátil, não banco de negócio; expiração/reinício: 410 e sincronização completa.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/OfertasCorrelationId"
+          },
+          {
+            "name": "ativa",
+            "in": "query",
+            "required": false,
+            "description": "Situação da oferta.",
+            "schema": {
+              "type": "boolean"
+            },
+            "example": true
+          },
+          {
+            "name": "produto",
+            "in": "query",
+            "required": false,
+            "description": "Igualdade do nome do produto.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Nome de produto."
+            },
+            "example": "Arroz"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/AtualizadoDesde"
+          },
+          {
+            "$ref": "#/components/parameters/IfNoneMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sincronizacaoofertas"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000006-0000-4000-8000-000000000001",
+                      "produtorId": "00000005-0000-4000-8000-000000000001",
+                      "produto": "Arroz",
+                      "quantidadeDisponivel": {
+                        "valor": "200.00",
+                        "unidade": "kg"
+                      },
+                      "ativa": true,
+                      "versao": 1
+                    }
+                  ],
+                  "removidos": [],
+                  "sincronizadoEm": "2026-10-20T10:00:00-03:00"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Representação privada não modificada após revalidar identidade/vínculo; sem corpo.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              },
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/OfertasErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/OfertasErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/OfertasErro403"
+          },
+          "410": {
+            "$ref": "#/components/responses/Erro410"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/OfertasErro503"
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "ofertas",
+            "metodo": "GET",
+            "caminho": "/api/v1/ofertas"
+          }
+        ]
+      }
+    },
+    "/ofertas/{id}": {
+      "get": {
+        "tags": [
+          "ofertas"
+        ],
+        "operationId": "produtor_obterOferta",
+        "summary": "Consultar oferta",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: produtor. Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo. Compras usa esta consulta com identidade do produtor propagada para validar a proposta. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/OfertasCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/OfertasId"
+          },
+          {
+            "$ref": "#/components/parameters/IfNoneMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfertasOferta"
+                },
+                "example": {
+                  "id": "00000006-0000-4000-8000-000000000001",
+                  "produtorId": "00000005-0000-4000-8000-000000000001",
+                  "produto": "Arroz",
+                  "quantidadeDisponivel": {
+                    "valor": "200.00",
+                    "unidade": "kg"
+                  },
+                  "ativa": true,
+                  "versao": 1
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Representação privada não modificada após revalidar identidade/vínculo; sem corpo.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              },
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/OfertasErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/OfertasErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/OfertasErro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/OfertasErro404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/OfertasErro503"
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "ofertas",
+            "metodo": "GET",
+            "caminho": "/api/v1/ofertas/{id}"
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "ofertas"
+        ],
+        "operationId": "produtor_ajustarOferta",
+        "summary": "Atualizar saldo livre ou situação",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: produtor. Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo. Versão inclui mudanças por reserva/liberação; edição e reserva concorrentes resultam em 409 para edição desatualizada. O saldo informado é absoluto, não incremento. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/OfertasCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/OfertasId"
+          },
+          {
+            "$ref": "#/components/parameters/OfertasIdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfertasOferta"
+                },
+                "example": {
+                  "id": "00000006-0000-4000-8000-000000000001",
+                  "produtorId": "00000005-0000-4000-8000-000000000001",
+                  "produto": "Arroz",
+                  "quantidadeDisponivel": {
+                    "valor": "150.00",
+                    "unidade": "kg"
+                  },
+                  "ativa": true,
+                  "versao": 2
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/OfertasErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/OfertasErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/OfertasErro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/OfertasErro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/OfertasErro409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Erro413"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/OfertasErro503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Corpo completo conforme schema; campos desconhecidos geram 400.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfertasOfertaAjuste"
+              },
+              "example": {
+                "versao": 1,
+                "quantidadeDisponivel": {
+                  "valor": "150.00",
+                  "unidade": "kg"
+                }
+              }
+            }
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "ofertas",
+            "metodo": "PATCH",
+            "caminho": "/api/v1/ofertas/{id}"
+          }
+        ]
+      }
+    },
+    "/reservas/{id}": {
+      "get": {
+        "tags": [
+          "ofertas"
+        ],
+        "operationId": "produtor_obterReserva",
+        "summary": "Consultar reserva",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: produtor. Somente o produtor dono da oferta associada à reserva. Criar/liberar reservas só por comandos internos da SAGA; não há POST público de reserva. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Somente o produtor dono da oferta associada à reserva.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/OfertasCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/OfertasId"
+          },
+          {
+            "$ref": "#/components/parameters/IfNoneMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfertasReserva"
+                },
+                "example": {
+                  "id": "00000007-0000-4000-8000-000000000001",
+                  "ofertaId": "00000006-0000-4000-8000-000000000001",
+                  "compraId": "00000010-0000-4000-8000-000000000001",
+                  "quantidade": {
+                    "valor": "100.00",
+                    "unidade": "kg"
+                  },
+                  "status": "ATIVA",
+                  "criadoEm": "2026-10-20T10:00:00-03:00"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Representação privada não modificada após revalidar identidade/vínculo; sem corpo.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              },
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/OfertasErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/OfertasErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/OfertasErro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/OfertasErro404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/OfertasErro503"
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "ofertas",
+            "metodo": "GET",
+            "caminho": "/api/v1/reservas/{id}"
+          }
+        ]
+      }
+    },
+    "/propostas": {
+      "post": {
+        "tags": [
+          "compras"
+        ],
+        "operationId": "produtor_enviarProposta",
+        "summary": "Enviar proposta",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: produtor. Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo. produtorId vem do token. Consulta Editais e Ofertas antes de persistir. Edital publicado, item existente, produto/unidade compatíveis, oferta ativa do produtor e quantidade positiva. Estado inválido: 409; dependência indisponível: 503 sem proposta gravada. Não reserva saldo. precoUnitario é proposta de conciliação ADR 0006. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ComprasCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/ComprasIdempotencyKey"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Recurso criado e persistido.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri-reference"
+                },
+                "description": "Caminho relativo na API do serviço; o BFF reescreve o prefixo externo.",
+                "example": "/produtor/api/v1/propostas/00000008-0000-4000-8000-000000000001"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComprasProposta"
+                },
+                "example": {
+                  "id": "00000008-0000-4000-8000-000000000001",
+                  "editalId": "00000003-0000-4000-8000-000000000001",
+                  "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                  "ofertaId": "00000006-0000-4000-8000-000000000001",
+                  "quantidade": {
+                    "valor": "100.00",
+                    "unidade": "kg"
+                  },
+                  "precoUnitario": {
+                    "valor": "5.00",
+                    "moeda": "BRL"
+                  },
+                  "produtorId": "00000005-0000-4000-8000-000000000001",
+                  "status": "ENVIADA",
+                  "snapshot": {
+                    "editalTitulo": "Chamada pública de alimentos",
+                    "escolaId": "00000002-0000-4000-8000-000000000001",
+                    "escolaNome": "Escola Exemplo",
+                    "produtorNome": "Produtor Exemplo",
+                    "produto": "Arroz",
+                    "snapshotAt": "2026-10-20T10:00:00-03:00"
+                  },
+                  "criadoEm": "2026-10-20T10:00:00-03:00"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ComprasErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/ComprasErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/ComprasErro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/ComprasErro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/ComprasErro409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Erro413"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/ComprasErro503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Corpo completo conforme schema; campos desconhecidos geram 400.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComprasPropostaCriacao"
+              },
+              "example": {
+                "editalId": "00000003-0000-4000-8000-000000000001",
+                "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                "ofertaId": "00000006-0000-4000-8000-000000000001",
+                "quantidade": {
+                  "valor": "100.00",
+                  "unidade": "kg"
+                },
+                "precoUnitario": {
+                  "valor": "5.00",
+                  "moeda": "BRL"
+                }
+              }
+            }
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "compras",
+            "metodo": "POST",
+            "caminho": "/api/v1/propostas"
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "compras"
+        ],
+        "operationId": "produtor_listarPropostas",
+        "summary": "Listar propostas",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: gestor, produtor. Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura. Ordenação estável por id ascendente. Filtros combinados com AND; autorização aplicada antes de contar/paginar. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço. No aplicativo, pagina/tamanho são inválidos: cursor fixo de até 10 registros (items+removidos) por resposta. BFF materializa snapshot autorizado em cache técnico, ordenado por id; filtra mudanças observadas no intervalo incremental. Não repassa cursor ou atualizadoDesde para serviços que não os suportam. Cache é volátil, não banco de negócio; expiração/reinício: 410 e sincronização completa.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ComprasCorrelationId"
+          },
+          {
+            "name": "editalId",
+            "in": "query",
+            "required": false,
+            "description": "Edital da proposta.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "00000003-0000-4000-8000-000000000001"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Estado da proposta.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ENVIADA",
+                "ALOCADA",
+                "RETIRADA",
+                "REJEITADA"
+              ]
+            },
+            "example": "ENVIADA"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/AtualizadoDesde"
+          },
+          {
+            "$ref": "#/components/parameters/IfNoneMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sincronizacaopropostas"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000008-0000-4000-8000-000000000001",
+                      "editalId": "00000003-0000-4000-8000-000000000001",
+                      "produto": "Arroz",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "status": "ENVIADA"
+                    }
+                  ],
+                  "removidos": [],
+                  "sincronizadoEm": "2026-10-20T10:00:00-03:00"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Representação privada não modificada após revalidar identidade/vínculo; sem corpo.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              },
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ComprasErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/ComprasErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/ComprasErro403"
+          },
+          "410": {
+            "$ref": "#/components/responses/Erro410"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/ComprasErro503"
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "compras",
+            "metodo": "GET",
+            "caminho": "/api/v1/propostas"
+          }
+        ]
+      }
+    },
+    "/propostas/{id}": {
+      "get": {
+        "tags": [
+          "compras"
+        ],
+        "operationId": "produtor_obterProposta",
+        "summary": "Consultar proposta",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: gestor, produtor. Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ComprasCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/ComprasId"
+          },
+          {
+            "$ref": "#/components/parameters/IfNoneMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComprasProposta"
+                },
+                "example": {
+                  "id": "00000008-0000-4000-8000-000000000001",
+                  "editalId": "00000003-0000-4000-8000-000000000001",
+                  "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                  "ofertaId": "00000006-0000-4000-8000-000000000001",
+                  "quantidade": {
+                    "valor": "100.00",
+                    "unidade": "kg"
+                  },
+                  "precoUnitario": {
+                    "valor": "5.00",
+                    "moeda": "BRL"
+                  },
+                  "produtorId": "00000005-0000-4000-8000-000000000001",
+                  "status": "ENVIADA",
+                  "snapshot": {
+                    "editalTitulo": "Chamada pública de alimentos",
+                    "escolaId": "00000002-0000-4000-8000-000000000001",
+                    "escolaNome": "Escola Exemplo",
+                    "produtorNome": "Produtor Exemplo",
+                    "produto": "Arroz",
+                    "snapshotAt": "2026-10-20T10:00:00-03:00"
+                  },
+                  "criadoEm": "2026-10-20T10:00:00-03:00"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Representação privada não modificada após revalidar identidade/vínculo; sem corpo.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              },
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ComprasErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/ComprasErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/ComprasErro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/ComprasErro404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/ComprasErro503"
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "compras",
+            "metodo": "GET",
+            "caminho": "/api/v1/propostas/{id}"
+          }
+        ]
+      }
+    },
+    "/propostas/{id}/retiradas": {
+      "post": {
+        "tags": [
+          "compras"
+        ],
+        "operationId": "produtor_retirarProposta",
+        "summary": "Registrar retirada da proposta",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: produtor. Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo. Somente ENVIADA → RETIRADA. Proposta comprometida por homologação não é retirada. Sugestões existentes não reservam a proposta; homologação as revalida. ALOCADA/RETIRADA/REJEITADA com nova chave: 409. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Exige produtorId do token igual ao dono do recurso; IDs enviados no corpo não substituem esse vínculo.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ComprasCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/ComprasId"
+          },
+          {
+            "$ref": "#/components/parameters/ComprasIdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComprasProposta"
+                },
+                "example": {
+                  "id": "00000008-0000-4000-8000-000000000001",
+                  "editalId": "00000003-0000-4000-8000-000000000001",
+                  "itemEditalId": "00000004-0000-4000-8000-000000000001",
+                  "ofertaId": "00000006-0000-4000-8000-000000000001",
+                  "quantidade": {
+                    "valor": "100.00",
+                    "unidade": "kg"
+                  },
+                  "precoUnitario": {
+                    "valor": "5.00",
+                    "moeda": "BRL"
+                  },
+                  "produtorId": "00000005-0000-4000-8000-000000000001",
+                  "status": "RETIRADA",
+                  "snapshot": {
+                    "editalTitulo": "Chamada pública de alimentos",
+                    "escolaId": "00000002-0000-4000-8000-000000000001",
+                    "escolaNome": "Escola Exemplo",
+                    "produtorNome": "Produtor Exemplo",
+                    "produto": "Arroz",
+                    "snapshotAt": "2026-10-20T10:00:00-03:00"
+                  },
+                  "criadoEm": "2026-10-20T10:00:00-03:00"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ComprasErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/ComprasErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/ComprasErro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/ComprasErro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/ComprasErro409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Erro413"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/ComprasErro503"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Corpo completo conforme schema; campos desconhecidos geram 400.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComprasRetiradaProposta"
+              },
+              "example": {
+                "motivo": "Produção indisponível"
+              }
+            }
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "compras",
+            "metodo": "POST",
+            "caminho": "/api/v1/propostas/{id}/retiradas"
+          }
+        ]
+      }
+    },
+    "/compras": {
+      "get": {
+        "tags": [
+          "compras"
+        ],
+        "operationId": "produtor_listarCompras",
+        "summary": "Listar compras",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: gestor, escola, produtor. Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura. Ordenação estável por id ascendente. Filtros combinados com AND; autorização aplicada antes de contar/paginar. Listagem usa estado autoritativo; composição rica usa o acompanhamento. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço. No aplicativo, pagina/tamanho são inválidos: cursor fixo de até 10 registros (items+removidos) por resposta. BFF materializa snapshot autorizado em cache técnico, ordenado por id; filtra mudanças observadas no intervalo incremental. Não repassa cursor ou atualizadoDesde para serviços que não os suportam. Cache é volátil, não banco de negócio; expiração/reinício: 410 e sincronização completa.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ComprasCorrelationId"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Estado atual da compra.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDENTE",
+                "CONFIRMADA",
+                "RECEBIDA",
+                "CANCELADA"
+              ]
+            },
+            "example": "PENDENTE"
+          },
+          {
+            "name": "editalId",
+            "in": "query",
+            "required": false,
+            "description": "Edital de origem.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "00000003-0000-4000-8000-000000000001"
+          },
+          {
+            "name": "escolaId",
+            "in": "query",
+            "required": false,
+            "description": "Escola de destino, sem ampliar o escopo.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "00000002-0000-4000-8000-000000000001"
+          },
+          {
+            "name": "produtorId",
+            "in": "query",
+            "required": false,
+            "description": "Produtor, sem ampliar o escopo.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "00000005-0000-4000-8000-000000000001"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/AtualizadoDesde"
+          },
+          {
+            "$ref": "#/components/parameters/IfNoneMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sincronizacaocompras"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "cliente": "produtor",
+                      "compraId": "00000010-0000-4000-8000-000000000001",
+                      "status": "PENDENTE",
+                      "produto": "Arroz",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "localEntrega": "Escola Exemplo",
+                      "pagamento": "AGUARDANDO_RECEBIMENTO",
+                      "_links": {
+                        "self": {
+                          "href": "/produtor/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/produtor/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "edital": {
+                          "href": "/produtor/api/v1/editais/00000003-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        }
+                      }
+                    }
+                  ],
+                  "removidos": [],
+                  "sincronizadoEm": "2026-10-20T10:00:00-03:00"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Representação privada não modificada após revalidar identidade/vínculo; sem corpo.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              },
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ComprasErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/ComprasErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/ComprasErro403"
+          },
+          "410": {
+            "$ref": "#/components/responses/Erro410"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/ComprasErro503"
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "compras",
+            "metodo": "GET",
+            "caminho": "/api/v1/compras"
+          }
+        ]
+      }
+    },
+    "/compras/{id}": {
+      "get": {
+        "tags": [
+          "compras"
+        ],
+        "operationId": "produtor_obterCompra",
+        "summary": "Consultar estado autoritativo da compra",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: gestor, escola, produtor. Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura. PENDENTE durante execução e compensação; CANCELADA somente após compensações confirmadas.  HATEOAS: self e acompanhamento para todo ator autorizado; liberacao-pagamento somente se RECEBIDA, liberação existente e papel gestor ou produtor. Escola nunca recebe esse link. Não adiciona links de outros serviços. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço. Apresentação adaptada por cliente. Estado e vínculos autoritativos vêm de Compra; contexto histórico vem dos snapshots; entrega/data/updatedAt vêm da projeção. Links de ação exigem revalidação do recurso dono. Na rota acompanhamento, ausência de projeção é 503; na consulta principal, pode-se retornar o estado autoritativo omitindo entrega/updatedAt. Falha ao decidir ação não permite inferir permissão da projeção.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ComprasCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/ComprasId"
+          },
+          {
+            "$ref": "#/components/parameters/IfNoneMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompraMobile"
+                },
+                "examples": {
+                  "confirmada": {
+                    "summary": "Produtor: payload achatado, sem recebimento",
+                    "value": {
+                      "cliente": "produtor",
+                      "compraId": "00000010-0000-4000-8000-000000000001",
+                      "status": "CONFIRMADA",
+                      "produto": "Arroz",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "localEntrega": "Escola Exemplo",
+                      "dataEntrega": "2026-11-25",
+                      "pagamento": "AGUARDANDO_RECEBIMENTO",
+                      "updatedAt": "2026-10-20T10:00:00-03:00",
+                      "_links": {
+                        "self": {
+                          "href": "/produtor/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/produtor/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "edital": {
+                          "href": "/produtor/api/v1/editais/00000003-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "entrega": {
+                          "href": "/produtor/api/v1/entregas/00000015-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        }
+                      }
+                    }
+                  },
+                  "pendente": {
+                    "summary": "Compra pendente: sem entrega/liberação/recebimento",
+                    "value": {
+                      "cliente": "produtor",
+                      "compraId": "00000010-0000-4000-8000-000000000001",
+                      "status": "PENDENTE",
+                      "produto": "Arroz",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "localEntrega": "Escola Exemplo",
+                      "pagamento": "AGUARDANDO_RECEBIMENTO",
+                      "updatedAt": "2026-10-20T10:00:00-03:00",
+                      "_links": {
+                        "self": {
+                          "href": "/produtor/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/produtor/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "edital": {
+                          "href": "/produtor/api/v1/editais/00000003-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        }
+                      }
+                    }
+                  },
+                  "recebida": {
+                    "summary": "Compra recebida: liberação disponível ao gestor/produtor",
+                    "value": {
+                      "cliente": "produtor",
+                      "compraId": "00000010-0000-4000-8000-000000000001",
+                      "status": "RECEBIDA",
+                      "produto": "Arroz",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "localEntrega": "Escola Exemplo",
+                      "dataEntrega": "2026-11-25",
+                      "pagamento": "LIBERADO",
+                      "updatedAt": "2026-11-25T10:30:00-03:00",
+                      "_links": {
+                        "self": {
+                          "href": "/produtor/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/produtor/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "edital": {
+                          "href": "/produtor/api/v1/editais/00000003-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "entrega": {
+                          "href": "/produtor/api/v1/entregas/00000015-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "liberacao-pagamento": {
+                          "href": "/produtor/api/v1/compras/00000010-0000-4000-8000-000000000001/liberacao-pagamento",
+                          "method": "GET"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Representação privada não modificada após revalidar identidade/vínculo; sem corpo.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              },
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ComprasErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/ComprasErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/ComprasErro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/ComprasErro404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/ComprasErro503"
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "compras",
+            "metodo": "GET",
+            "caminho": "/api/v1/compras/{id}"
+          },
+          {
+            "servico": "compras",
+            "metodo": "GET",
+            "caminho": "/api/v1/compras/{id}/acompanhamento"
+          },
+          {
+            "servico": "entregas",
+            "metodo": "GET",
+            "caminho": "/api/v1/entregas/{id}",
+            "condicao": "entrega identificada e vínculo autorizado; obrigatório para decidir ação de recebimento"
+          }
+        ]
+      }
+    },
+    "/compras/{id}/acompanhamento": {
+      "get": {
+        "tags": [
+          "compras"
+        ],
+        "operationId": "produtor_obterAcompanhamento",
+        "summary": "Consultar projeção de acompanhamento",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: gestor, escola, produtor. Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura. Autoriza pelo modelo de escrita antes de ler a projeção. Meta de atraso de 5 s, ainda não medida. Compra existente sem projeção inicial: 503 com Retry-After; compra inexistente: 404. updatedAt indica instante da projeção, não garantia de atualidade. Campo entrega é omitido até haver agendamento. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço. Apresentação adaptada por cliente. Estado e vínculos autoritativos vêm de Compra; contexto histórico vem dos snapshots; entrega/data/updatedAt vêm da projeção. Links de ação exigem revalidação do recurso dono. Na rota acompanhamento, ausência de projeção é 503; na consulta principal, pode-se retornar o estado autoritativo omitindo entrega/updatedAt. Falha ao decidir ação não permite inferir permissão da projeção.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ComprasCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/ComprasId"
+          },
+          {
+            "$ref": "#/components/parameters/IfNoneMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompraMobile"
+                },
+                "examples": {
+                  "confirmada": {
+                    "summary": "Produtor: payload achatado, sem recebimento",
+                    "value": {
+                      "cliente": "produtor",
+                      "compraId": "00000010-0000-4000-8000-000000000001",
+                      "status": "CONFIRMADA",
+                      "produto": "Arroz",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "localEntrega": "Escola Exemplo",
+                      "dataEntrega": "2026-11-25",
+                      "pagamento": "AGUARDANDO_RECEBIMENTO",
+                      "updatedAt": "2026-10-20T10:00:00-03:00",
+                      "_links": {
+                        "self": {
+                          "href": "/produtor/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/produtor/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "edital": {
+                          "href": "/produtor/api/v1/editais/00000003-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "entrega": {
+                          "href": "/produtor/api/v1/entregas/00000015-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        }
+                      }
+                    }
+                  },
+                  "pendente": {
+                    "summary": "Compra pendente: sem entrega/liberação/recebimento",
+                    "value": {
+                      "cliente": "produtor",
+                      "compraId": "00000010-0000-4000-8000-000000000001",
+                      "status": "PENDENTE",
+                      "produto": "Arroz",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "localEntrega": "Escola Exemplo",
+                      "pagamento": "AGUARDANDO_RECEBIMENTO",
+                      "updatedAt": "2026-10-20T10:00:00-03:00",
+                      "_links": {
+                        "self": {
+                          "href": "/produtor/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/produtor/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "edital": {
+                          "href": "/produtor/api/v1/editais/00000003-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        }
+                      }
+                    }
+                  },
+                  "recebida": {
+                    "summary": "Compra recebida: liberação disponível ao gestor/produtor",
+                    "value": {
+                      "cliente": "produtor",
+                      "compraId": "00000010-0000-4000-8000-000000000001",
+                      "status": "RECEBIDA",
+                      "produto": "Arroz",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "localEntrega": "Escola Exemplo",
+                      "dataEntrega": "2026-11-25",
+                      "pagamento": "LIBERADO",
+                      "updatedAt": "2026-11-25T10:30:00-03:00",
+                      "_links": {
+                        "self": {
+                          "href": "/produtor/api/v1/compras/00000010-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "acompanhamento": {
+                          "href": "/produtor/api/v1/compras/00000010-0000-4000-8000-000000000001/acompanhamento",
+                          "method": "GET"
+                        },
+                        "edital": {
+                          "href": "/produtor/api/v1/editais/00000003-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "entrega": {
+                          "href": "/produtor/api/v1/entregas/00000015-0000-4000-8000-000000000001",
+                          "method": "GET"
+                        },
+                        "liberacao-pagamento": {
+                          "href": "/produtor/api/v1/compras/00000010-0000-4000-8000-000000000001/liberacao-pagamento",
+                          "method": "GET"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Representação privada não modificada após revalidar identidade/vínculo; sem corpo.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              },
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ComprasErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/ComprasErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/ComprasErro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/ComprasErro404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/ComprasErro503"
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "compras",
+            "metodo": "GET",
+            "caminho": "/api/v1/compras/{id}"
+          },
+          {
+            "servico": "compras",
+            "metodo": "GET",
+            "caminho": "/api/v1/compras/{id}/acompanhamento"
+          },
+          {
+            "servico": "entregas",
+            "metodo": "GET",
+            "caminho": "/api/v1/entregas/{id}",
+            "condicao": "entrega identificada e vínculo autorizado; obrigatório para decidir ação de recebimento"
+          }
+        ]
+      }
+    },
+    "/compras/{id}/liberacao-pagamento": {
+      "get": {
+        "tags": [
+          "compras"
+        ],
+        "operationId": "produtor_obterLiberacaoPagamento",
+        "summary": "Consultar liberação de pagamento",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: gestor, produtor. Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura. 404 se compra não existe ou a liberação ainda não foi registrada, com code específico LIBERACAO_NAO_REGISTRADA neste último caso. Só EntregaRecebida autoriza o registro interno único; não representa transferência bancária. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Gestor: somente compras/propostas/planos da própria prefeitura; escola: somente compras da própria escola; produtor: somente suas compras/propostas. O escopo é verificado no modelo autoritativo, nunca pela projeção de leitura.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ComprasCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/ComprasId"
+          },
+          {
+            "$ref": "#/components/parameters/IfNoneMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComprasLiberacaoPagamento"
+                },
+                "example": {
+                  "id": "00000016-0000-4000-8000-000000000001",
+                  "compraId": "00000010-0000-4000-8000-000000000001",
+                  "valor": {
+                    "valor": "500.00",
+                    "moeda": "BRL"
+                  },
+                  "liberadoEm": "2026-11-25T10:30:00-03:00"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Representação privada não modificada após revalidar identidade/vínculo; sem corpo.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              },
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ComprasErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/ComprasErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/ComprasErro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/ComprasErro404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/ComprasErro503"
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "compras",
+            "metodo": "GET",
+            "caminho": "/api/v1/compras/{id}/liberacao-pagamento"
+          }
+        ]
+      }
+    },
+    "/entregas": {
+      "get": {
+        "tags": [
+          "entregas"
+        ],
+        "operationId": "produtor_listarEntregas",
+        "summary": "Listar entregas",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: gestor, escola, produtor. Gestor: entregas da própria prefeitura; escola: instituicaoId igual a escolaId; produtor: produtorId igual ao da entrega. Vínculos são autoritativos, conforme conciliação ADR 0006. Ordenação estável por id ascendente. Filtros combinados com AND; autorização aplicada antes de contar/paginar. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço. No aplicativo, pagina/tamanho são inválidos: cursor fixo de até 10 registros (items+removidos) por resposta. BFF materializa snapshot autorizado em cache técnico, ordenado por id; filtra mudanças observadas no intervalo incremental. Não repassa cursor ou atualizadoDesde para serviços que não os suportam. Cache é volátil, não banco de negócio; expiração/reinício: 410 e sincronização completa.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Gestor: entregas da própria prefeitura; escola: instituicaoId igual a escolaId; produtor: produtorId igual ao da entrega. Vínculos são autoritativos, conforme conciliação ADR 0006.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EntregasCorrelationId"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Situação da entrega.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "AGENDADA",
+                "RECEBIDA",
+                "CANCELADA"
+              ]
+            },
+            "example": "AGENDADA"
+          },
+          {
+            "name": "escolaId",
+            "in": "query",
+            "required": false,
+            "description": "Escola, dentro do escopo autorizado.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "00000002-0000-4000-8000-000000000001"
+          },
+          {
+            "name": "compraId",
+            "in": "query",
+            "required": false,
+            "description": "Compra relacionada.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "00000010-0000-4000-8000-000000000001"
+          },
+          {
+            "name": "inicioDesde",
+            "in": "query",
+            "required": false,
+            "description": "Início da janela maior ou igual ao instante.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "example": "2026-11-25T08:00:00-03:00"
+          },
+          {
+            "name": "inicioAte",
+            "in": "query",
+            "required": false,
+            "description": "Início da janela menor ou igual ao instante.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "example": "2026-11-25T17:00:00-03:00"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/AtualizadoDesde"
+          },
+          {
+            "$ref": "#/components/parameters/IfNoneMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sincronizacaoentregas"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000015-0000-4000-8000-000000000001",
+                      "compraId": "00000010-0000-4000-8000-000000000001",
+                      "escolaId": "00000002-0000-4000-8000-000000000001",
+                      "produtorId": "00000005-0000-4000-8000-000000000001",
+                      "agendamentoId": "00000014-0000-4000-8000-000000000001",
+                      "janela": {
+                        "inicio": "2026-11-25T08:00:00-03:00",
+                        "fim": "2026-11-25T17:00:00-03:00"
+                      },
+                      "status": "AGENDADA"
+                    }
+                  ],
+                  "removidos": [],
+                  "sincronizadoEm": "2026-10-20T10:00:00-03:00"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Representação privada não modificada após revalidar identidade/vínculo; sem corpo.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              },
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/EntregasErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/EntregasErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/EntregasErro403"
+          },
+          "410": {
+            "$ref": "#/components/responses/Erro410"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/EntregasErro503"
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "entregas",
+            "metodo": "GET",
+            "caminho": "/api/v1/entregas"
+          }
+        ]
+      }
+    },
+    "/entregas/{id}": {
+      "get": {
+        "tags": [
+          "entregas"
+        ],
+        "operationId": "produtor_obterEntrega",
+        "summary": "Consultar entrega",
+        "description": "BFF produtor: papéis produtor. A regra de vínculo do serviço permanece obrigatória. Papéis permitidos: gestor, escola, produtor. Mesmo vínculo da listagem. O produtor só consulta entregas associadas a suas compras. Location e href internos são reescritos para /produtor/api/v1. Não aceita papel fora de x-papeis, mesmo que apareça na descrição herdada do serviço.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Mesmo vínculo da listagem. O produtor só consulta entregas associadas a suas compras.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EntregasCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/EntregasId"
+          },
+          {
+            "$ref": "#/components/parameters/IfNoneMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída.",
+            "headers": {
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntregasEntrega"
+                },
+                "example": {
+                  "id": "00000015-0000-4000-8000-000000000001",
+                  "compraId": "00000010-0000-4000-8000-000000000001",
+                  "escolaId": "00000002-0000-4000-8000-000000000001",
+                  "produtorId": "00000005-0000-4000-8000-000000000001",
+                  "agendamentoId": "00000014-0000-4000-8000-000000000001",
+                  "janela": {
+                    "inicio": "2026-11-25T08:00:00-03:00",
+                    "fim": "2026-11-25T17:00:00-03:00"
+                  },
+                  "status": "AGENDADA"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Representação privada não modificada após revalidar identidade/vínculo; sem corpo.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              },
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/EntregasErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/EntregasErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/EntregasErro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/EntregasErro404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/EntregasErro503"
+          }
+        },
+        "x-origens": [
+          {
+            "servico": "entregas",
+            "metodo": "GET",
+            "caminho": "/api/v1/entregas/{id}"
+          }
+        ]
+      }
+    },
+    "/inicio": {
+      "get": {
+        "operationId": "produtor_inicio",
+        "tags": [
+          "agregacoes"
+        ],
+        "summary": "Resumo móvel do produtor",
+        "description": "Somente produtorId autenticado. Até 3 propostas recentes e 3 entregas AGENDADA futuras, ordenadas pela janela e id, com escola obtida do snapshot autorizado de Compra; editaisCompativeis conta editais PUBLICADO com ao menos um item de produto e unidade iguais a oferta ativa do produtor. Compatibilidade é indicativa, não elegibilidade legal. Agrega Editais, Ofertas, Compras e Entregas via APIs. Percorre todas as páginas necessárias com limite 10.000 registros por composição; indisponibilidade/estouro: 503 sem contagem parcial. Sincronização incremental se aplica às coleções, não a este resumo.",
+        "x-papeis": [
+          "produtor"
+        ],
+        "x-autorizacao": "Somente recursos do produtorId do JWT.",
+        "x-origens": [
+          {
+            "servico": "editais",
+            "metodo": "GET",
+            "caminho": "/api/v1/editais"
+          },
+          {
+            "servico": "ofertas",
+            "metodo": "GET",
+            "caminho": "/api/v1/ofertas"
+          },
+          {
+            "servico": "compras",
+            "metodo": "GET",
+            "caminho": "/api/v1/propostas"
+          },
+          {
+            "servico": "compras",
+            "metodo": "GET",
+            "caminho": "/api/v1/compras/{id}"
+          },
+          {
+            "servico": "entregas",
+            "metodo": "GET",
+            "caminho": "/api/v1/entregas"
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ComprasCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/IfNoneMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resumo compacto completo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Inicio"
+                },
+                "example": {
+                  "cliente": "produtor",
+                  "recurso": "inicio",
+                  "propostas": [
+                    {
+                      "id": "00000008-0000-4000-8000-000000000001",
+                      "editalId": "00000003-0000-4000-8000-000000000001",
+                      "produto": "Arroz",
+                      "quantidade": {
+                        "valor": "100.00",
+                        "unidade": "kg"
+                      },
+                      "status": "ENVIADA"
+                    }
+                  ],
+                  "proximasEntregas": [
+                    {
+                      "id": "00000015-0000-4000-8000-000000000001",
+                      "compraId": "00000010-0000-4000-8000-000000000001",
+                      "data": "2026-11-25",
+                      "localEntrega": "Escola Exemplo"
+                    }
+                  ],
+                  "editaisCompativeis": 1,
+                  "sincronizadoEm": "2026-10-20T10:00:00-03:00"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              },
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Representação privada não modificada após revalidar identidade/vínculo; sem corpo.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"visao-produtor-1\"",
+                "description": "Hash da representação canônica, escopo autorizado e geração da visão; inclui links. Não usar relógio variável sem mudança de conteúdo."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "private, no-cache"
+              },
+              "Vary": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Authorization"
+              },
+              "X-Correlation-Id": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ComprasErro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/ComprasErro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/ComprasErro403"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          },
+          "503": {
+            "$ref": "#/components/responses/ComprasErro503"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT OIDC propagado internamente. Claims: sub, papel (gestor/escola/produtor), instituicaoId ou produtorId. Autenticação não substitui autorização por recurso."
+      }
+    },
+    "schemas": {
+      "Erro": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Código estável legível por máquina."
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Mensagem sem detalhes internos."
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "campo": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Caminho do campo ou contexto."
+                },
+                "motivo": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Motivo do erro."
+                }
+              },
+              "required": [
+                "campo",
+                "motivo"
+              ]
+            },
+            "minItems": 0
+          },
+          "correlationId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "details",
+          "correlationId"
+        ]
+      },
+      "EditaisQuantidade": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "valor": {
+            "type": "string",
+            "pattern": "^(0\\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,11}\\.[0-9]{2})$",
+            "description": "Decimal exato estritamente positivo, com duas casas."
+          },
+          "unidade": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20,
+            "description": "Unidade compatível com o item/oferta; conversão implícita é proibida."
+          }
+        },
+        "required": [
+          "valor",
+          "unidade"
+        ]
+      },
+      "EditaisSaldo": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "valor": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,11})\\.[0-9]{2}$",
+            "description": "Decimal exato não negativo, com duas casas, transmitido como string. Não usar float."
+          },
+          "unidade": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20,
+            "description": "Mesma unidade da quantidade original."
+          }
+        },
+        "required": [
+          "valor",
+          "unidade"
+        ]
+      },
+      "EditaisErro": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Código estável legível por máquina."
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Mensagem sem detalhes internos."
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "campo": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Caminho do campo ou contexto."
+                },
+                "motivo": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Motivo do erro."
+                }
+              },
+              "required": [
+                "campo",
+                "motivo"
+              ]
+            },
+            "minItems": 0
+          },
+          "correlationId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "details",
+          "correlationId"
+        ]
+      },
+      "EditaisVersao": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "EditaisCriterioAlocacao": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "codigo": {
+            "type": "string",
+            "enum": [
+              "ORDEM_ENVIO",
+              "PRECO_UNITARIO"
+            ],
+            "description": "Catálogo inicial proposto no ADR 0006: criadoEm ou preço unitário da proposta. Código desconhecido: 400."
+          },
+          "ordem": {
+            "type": "string",
+            "enum": [
+              "ASC",
+              "DESC"
+            ]
+          },
+          "parametros": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {},
+            "required": [],
+            "description": "Sem parâmetros adicionais nestas estratégias; chaves desconhecidas: 400."
+          }
+        },
+        "required": [
+          "codigo",
+          "ordem",
+          "parametros"
+        ],
+        "examples": [
+          {
+            "codigo": "ORDEM_ENVIO",
+            "ordem": "ASC",
+            "parametros": {}
+          }
+        ]
+      },
+      "EditaisItemEdital": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "escolaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "produto": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Produto demandado."
+          },
+          "quantidade": {
+            "$ref": "#/components/schemas/EditaisQuantidade"
+          },
+          "saldo": {
+            "$ref": "#/components/schemas/EditaisSaldo"
+          },
+          "versao": {
+            "$ref": "#/components/schemas/EditaisVersao"
+          }
+        },
+        "required": [
+          "id",
+          "escolaId",
+          "produto",
+          "quantidade",
+          "saldo",
+          "versao"
+        ],
+        "examples": [
+          {
+            "id": "00000004-0000-4000-8000-000000000001",
+            "escolaId": "00000002-0000-4000-8000-000000000001",
+            "produto": "Arroz",
+            "quantidade": {
+              "valor": "100.00",
+              "unidade": "kg"
+            },
+            "saldo": {
+              "valor": "100.00",
+              "unidade": "kg"
+            },
+            "versao": 1
+          }
+        ]
+      },
+      "EditaisEdital": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "prefeituraId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "titulo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Título do edital."
+          },
+          "prazoEntrega": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "criterios": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EditaisCriterioAlocacao"
+            },
+            "minItems": 1
+          },
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EditaisItemEdital"
+            },
+            "minItems": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "RASCUNHO",
+              "PUBLICADO",
+              "ENCERRADO"
+            ]
+          },
+          "versao": {
+            "$ref": "#/components/schemas/EditaisVersao"
+          }
+        },
+        "required": [
+          "id",
+          "prefeituraId",
+          "titulo",
+          "prazoEntrega",
+          "criterios",
+          "itens",
+          "status",
+          "versao"
+        ],
+        "examples": [
+          {
+            "id": "00000003-0000-4000-8000-000000000001",
+            "prefeituraId": "00000001-0000-4000-8000-000000000001",
+            "titulo": "Chamada pública de alimentos",
+            "prazoEntrega": "2026-11-25T17:00:00-03:00",
+            "criterios": [
+              {
+                "codigo": "ORDEM_ENVIO",
+                "ordem": "ASC",
+                "parametros": {}
+              }
+            ],
+            "itens": [
+              {
+                "id": "00000004-0000-4000-8000-000000000001",
+                "escolaId": "00000002-0000-4000-8000-000000000001",
+                "produto": "Arroz",
+                "quantidade": {
+                  "valor": "100.00",
+                  "unidade": "kg"
+                },
+                "saldo": {
+                  "valor": "100.00",
+                  "unidade": "kg"
+                },
+                "versao": 1
+              }
+            ],
+            "status": "RASCUNHO",
+            "versao": 1
+          }
+        ]
+      },
+      "OfertasQuantidade": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "valor": {
+            "type": "string",
+            "pattern": "^(0\\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,11}\\.[0-9]{2})$",
+            "description": "Decimal exato estritamente positivo, com duas casas."
+          },
+          "unidade": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20,
+            "description": "Unidade compatível com o item/oferta; conversão implícita é proibida."
+          }
+        },
+        "required": [
+          "valor",
+          "unidade"
+        ]
+      },
+      "OfertasSaldo": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "valor": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,11})\\.[0-9]{2}$",
+            "description": "Decimal exato não negativo, com duas casas, transmitido como string. Não usar float."
+          },
+          "unidade": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20,
+            "description": "Mesma unidade da quantidade original."
+          }
+        },
+        "required": [
+          "valor",
+          "unidade"
+        ]
+      },
+      "OfertasErro": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Código estável legível por máquina."
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Mensagem sem detalhes internos."
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "campo": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Caminho do campo ou contexto."
+                },
+                "motivo": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Motivo do erro."
+                }
+              },
+              "required": [
+                "campo",
+                "motivo"
+              ]
+            },
+            "minItems": 0
+          },
+          "correlationId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "details",
+          "correlationId"
+        ]
+      },
+      "OfertasVersao": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "OfertasProdutorCriacao": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Nome do produtor."
+          },
+          "documento": {
+            "type": "string",
+            "pattern": "^([0-9]{11}|[0-9]{14})$",
+            "description": "CPF ou CNPJ sem pontuação, único."
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          }
+        },
+        "required": [
+          "nome",
+          "documento",
+          "email"
+        ]
+      },
+      "OfertasProdutor": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Nome do produtor."
+          },
+          "documento": {
+            "type": "string",
+            "pattern": "^([0-9]{11}|[0-9]{14})$",
+            "description": "CPF ou CNPJ sem pontuação, único."
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "ativo": {
+            "type": "boolean"
+          },
+          "versao": {
+            "$ref": "#/components/schemas/OfertasVersao"
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "documento",
+          "email",
+          "ativo",
+          "versao"
+        ],
+        "examples": [
+          {
+            "id": "00000005-0000-4000-8000-000000000001",
+            "nome": "Produtor Exemplo",
+            "documento": "12345678901",
+            "email": "produtor@example.org",
+            "ativo": true,
+            "versao": 1
+          }
+        ]
+      },
+      "OfertasProdutorAjuste": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "versao": {
+            "$ref": "#/components/schemas/OfertasVersao"
+          },
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Nome atualizado."
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "ativo": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "versao"
+        ],
+        "minProperties": 2
+      },
+      "OfertasOfertaCriacao": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "produtorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "produto": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Produto ofertado."
+          },
+          "quantidadeDisponivel": {
+            "$ref": "#/components/schemas/OfertasQuantidade"
+          }
+        },
+        "required": [
+          "produtorId",
+          "produto",
+          "quantidadeDisponivel"
+        ]
+      },
+      "OfertasOferta": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "produtorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "produto": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Produto ofertado."
+          },
+          "quantidadeDisponivel": {
+            "$ref": "#/components/schemas/OfertasSaldo"
+          },
+          "ativa": {
+            "type": "boolean"
+          },
+          "versao": {
+            "$ref": "#/components/schemas/OfertasVersao"
+          }
+        },
+        "required": [
+          "id",
+          "produtorId",
+          "produto",
+          "quantidadeDisponivel",
+          "ativa",
+          "versao"
+        ],
+        "examples": [
+          {
+            "id": "00000006-0000-4000-8000-000000000001",
+            "produtorId": "00000005-0000-4000-8000-000000000001",
+            "produto": "Arroz",
+            "quantidadeDisponivel": {
+              "valor": "200.00",
+              "unidade": "kg"
+            },
+            "ativa": true,
+            "versao": 1
+          }
+        ]
+      },
+      "OfertasOfertaAjuste": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "versao": {
+            "$ref": "#/components/schemas/OfertasVersao"
+          },
+          "quantidadeDisponivel": {
+            "$ref": "#/components/schemas/OfertasSaldo"
+          },
+          "ativa": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "versao"
+        ],
+        "minProperties": 2,
+        "description": "Atualiza só o saldo livre, sem devolver ou consumir reservas existentes. Produto, unidade e produtor são imutáveis; unidade da quantidade deve permanecer igual. Inativação impede novas reservas, preservando compromissos existentes."
+      },
+      "OfertasReserva": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ofertaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "compraId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantidade": {
+            "$ref": "#/components/schemas/OfertasQuantidade"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ATIVA",
+              "LIBERADA"
+            ]
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "ofertaId",
+          "compraId",
+          "quantidade",
+          "status",
+          "criadoEm"
+        ],
+        "examples": [
+          {
+            "id": "00000007-0000-4000-8000-000000000001",
+            "ofertaId": "00000006-0000-4000-8000-000000000001",
+            "compraId": "00000010-0000-4000-8000-000000000001",
+            "quantidade": {
+              "valor": "100.00",
+              "unidade": "kg"
+            },
+            "status": "ATIVA",
+            "criadoEm": "2026-10-20T10:00:00-03:00"
+          }
+        ]
+      },
+      "ComprasQuantidade": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "valor": {
+            "type": "string",
+            "pattern": "^(0\\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,11}\\.[0-9]{2})$",
+            "description": "Decimal exato estritamente positivo, com duas casas."
+          },
+          "unidade": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20,
+            "description": "Unidade compatível com o item/oferta; conversão implícita é proibida."
+          }
+        },
+        "required": [
+          "valor",
+          "unidade"
+        ]
+      },
+      "ComprasDinheiro": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "valor": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,11})\\.[0-9]{2}$",
+            "description": "Decimal exato não negativo, com duas casas, transmitido como string. Não usar float."
+          },
+          "moeda": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "description": "Código de moeda com três letras; operações da mesma compra usam a mesma moeda."
+          }
+        },
+        "required": [
+          "valor",
+          "moeda"
+        ]
+      },
+      "ComprasErro": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Código estável legível por máquina."
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Mensagem sem detalhes internos."
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "campo": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Caminho do campo ou contexto."
+                },
+                "motivo": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Motivo do erro."
+                }
+              },
+              "required": [
+                "campo",
+                "motivo"
+              ]
+            },
+            "minItems": 0
+          },
+          "correlationId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "details",
+          "correlationId"
+        ]
+      },
+      "ComprasSnapshotProposta": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "editalTitulo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Título histórico do edital."
+          },
+          "escolaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "escolaNome": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Nome histórico da escola."
+          },
+          "produtorNome": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Nome histórico do produtor."
+          },
+          "produto": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Produto validado."
+          },
+          "snapshotAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "editalTitulo",
+          "escolaId",
+          "escolaNome",
+          "produtorNome",
+          "produto",
+          "snapshotAt"
+        ]
+      },
+      "ComprasPropostaCriacao": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "editalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "itemEditalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ofertaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantidade": {
+            "$ref": "#/components/schemas/ComprasQuantidade"
+          },
+          "precoUnitario": {
+            "$ref": "#/components/schemas/ComprasDinheiro"
+          }
+        },
+        "required": [
+          "editalId",
+          "itemEditalId",
+          "ofertaId",
+          "quantidade",
+          "precoUnitario"
+        ],
+        "examples": [
+          {
+            "editalId": "00000003-0000-4000-8000-000000000001",
+            "itemEditalId": "00000004-0000-4000-8000-000000000001",
+            "ofertaId": "00000006-0000-4000-8000-000000000001",
+            "quantidade": {
+              "valor": "100.00",
+              "unidade": "kg"
+            },
+            "precoUnitario": {
+              "valor": "5.00",
+              "moeda": "BRL"
+            }
+          }
+        ]
+      },
+      "ComprasProposta": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "editalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "itemEditalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ofertaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantidade": {
+            "$ref": "#/components/schemas/ComprasQuantidade"
+          },
+          "precoUnitario": {
+            "$ref": "#/components/schemas/ComprasDinheiro"
+          },
+          "produtorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ENVIADA",
+              "ALOCADA",
+              "RETIRADA",
+              "REJEITADA"
+            ]
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/ComprasSnapshotProposta"
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "editalId",
+          "itemEditalId",
+          "ofertaId",
+          "quantidade",
+          "precoUnitario",
+          "produtorId",
+          "status",
+          "snapshot",
+          "criadoEm"
+        ],
+        "examples": [
+          {
+            "id": "00000008-0000-4000-8000-000000000001",
+            "editalId": "00000003-0000-4000-8000-000000000001",
+            "itemEditalId": "00000004-0000-4000-8000-000000000001",
+            "ofertaId": "00000006-0000-4000-8000-000000000001",
+            "quantidade": {
+              "valor": "100.00",
+              "unidade": "kg"
+            },
+            "precoUnitario": {
+              "valor": "5.00",
+              "moeda": "BRL"
+            },
+            "produtorId": "00000005-0000-4000-8000-000000000001",
+            "status": "ENVIADA",
+            "snapshot": {
+              "editalTitulo": "Chamada pública de alimentos",
+              "escolaId": "00000002-0000-4000-8000-000000000001",
+              "escolaNome": "Escola Exemplo",
+              "produtorNome": "Produtor Exemplo",
+              "produto": "Arroz",
+              "snapshotAt": "2026-10-20T10:00:00-03:00"
+            },
+            "criadoEm": "2026-10-20T10:00:00-03:00"
+          }
+        ]
+      },
+      "ComprasRetiradaProposta": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "motivo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Justificativa opcional da retirada."
+          }
+        },
+        "required": []
+      },
+      "ComprasLiberacaoPagamento": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "compraId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "valor": {
+            "$ref": "#/components/schemas/ComprasDinheiro"
+          },
+          "liberadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "compraId",
+          "valor",
+          "liberadoEm"
+        ],
+        "examples": [
+          {
+            "id": "00000016-0000-4000-8000-000000000001",
+            "compraId": "00000010-0000-4000-8000-000000000001",
+            "valor": {
+              "valor": "500.00",
+              "moeda": "BRL"
+            },
+            "liberadoEm": "2026-11-25T10:30:00-03:00"
+          }
+        ]
+      },
+      "EntregasErro": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Código estável legível por máquina."
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Mensagem sem detalhes internos."
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "campo": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Caminho do campo ou contexto."
+                },
+                "motivo": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Motivo do erro."
+                }
+              },
+              "required": [
+                "campo",
+                "motivo"
+              ]
+            },
+            "minItems": 0
+          },
+          "correlationId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "details",
+          "correlationId"
+        ]
+      },
+      "EntregasJanela": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "inicio": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fim": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "inicio",
+          "fim"
+        ],
+        "examples": [
+          {
+            "inicio": "2026-11-25T08:00:00-03:00",
+            "fim": "2026-11-25T17:00:00-03:00"
+          }
+        ]
+      },
+      "EntregasEntrega": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "compraId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "escolaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "produtorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "agendamentoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "janela": {
+            "$ref": "#/components/schemas/EntregasJanela"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "AGENDADA",
+              "RECEBIDA",
+              "CANCELADA"
+            ]
+          },
+          "recebidoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recebidoPor": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id",
+          "compraId",
+          "escolaId",
+          "produtorId",
+          "agendamentoId",
+          "janela",
+          "status"
+        ],
+        "examples": [
+          {
+            "id": "00000015-0000-4000-8000-000000000001",
+            "compraId": "00000010-0000-4000-8000-000000000001",
+            "escolaId": "00000002-0000-4000-8000-000000000001",
+            "produtorId": "00000005-0000-4000-8000-000000000001",
+            "agendamentoId": "00000014-0000-4000-8000-000000000001",
+            "janela": {
+              "inicio": "2026-11-25T08:00:00-03:00",
+              "fim": "2026-11-25T17:00:00-03:00"
+            },
+            "status": "AGENDADA"
+          }
+        ]
+      },
+      "Links": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "self": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "href": {
+                "type": "string",
+                "format": "uri-reference",
+                "pattern": "^/produtor/api/v1/"
+              },
+              "method": {
+                "type": "string",
+                "const": "GET"
+              }
+            },
+            "required": [
+              "href",
+              "method"
+            ]
+          },
+          "acompanhamento": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "href": {
+                "type": "string",
+                "format": "uri-reference",
+                "pattern": "^/produtor/api/v1/"
+              },
+              "method": {
+                "type": "string",
+                "const": "GET"
+              }
+            },
+            "required": [
+              "href",
+              "method"
+            ]
+          },
+          "edital": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "href": {
+                "type": "string",
+                "format": "uri-reference",
+                "pattern": "^/produtor/api/v1/"
+              },
+              "method": {
+                "type": "string",
+                "const": "GET"
+              }
+            },
+            "required": [
+              "href",
+              "method"
+            ]
+          },
+          "entrega": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "href": {
+                "type": "string",
+                "format": "uri-reference",
+                "pattern": "^/produtor/api/v1/"
+              },
+              "method": {
+                "type": "string",
+                "const": "GET"
+              }
+            },
+            "required": [
+              "href",
+              "method"
+            ]
+          },
+          "liberacao-pagamento": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "href": {
+                "type": "string",
+                "format": "uri-reference",
+                "pattern": "^/produtor/api/v1/"
+              },
+              "method": {
+                "type": "string",
+                "const": "GET"
+              }
+            },
+            "required": [
+              "href",
+              "method"
+            ]
+          }
+        },
+        "required": [
+          "self",
+          "acompanhamento",
+          "edital"
+        ]
+      },
+      "CompraMobile": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "cliente": {
+            "const": "produtor",
+            "type": "string"
+          },
+          "compraId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDENTE",
+              "CONFIRMADA",
+              "RECEBIDA",
+              "CANCELADA"
+            ]
+          },
+          "quantidade": {
+            "$ref": "#/components/schemas/ComprasQuantidade"
+          },
+          "_links": {
+            "$ref": "#/components/schemas/Links"
+          },
+          "produto": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "localEntrega": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "dataEntrega": {
+            "type": "string",
+            "format": "date"
+          },
+          "pagamento": {
+            "type": "string",
+            "enum": [
+              "AGUARDANDO_RECEBIMENTO",
+              "LIBERADO"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "cliente",
+          "compraId",
+          "status",
+          "quantidade",
+          "_links",
+          "produto",
+          "localEntrega",
+          "pagamento"
+        ]
+      },
+      "EditalResumo": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "titulo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PUBLICADO",
+              "ENCERRADO"
+            ]
+          },
+          "prazoEntrega": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "produtos": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        },
+        "required": [
+          "id",
+          "titulo",
+          "status",
+          "prazoEntrega",
+          "produtos"
+        ]
+      },
+      "PropostaResumo": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "editalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "produto": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "quantidade": {
+            "$ref": "#/components/schemas/ComprasQuantidade"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ENVIADA",
+              "ALOCADA",
+              "RETIRADA",
+              "REJEITADA"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "editalId",
+          "produto",
+          "quantidade",
+          "status"
+        ]
+      },
+      "Sincronizacaoeditais": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EditalResumo"
+            }
+          },
+          "removidos": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "proximoCursor": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 1024,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "sincronizadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "items",
+          "removidos",
+          "sincronizadoEm"
+        ]
+      },
+      "Sincronizacaoofertas": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OfertasOferta"
+            }
+          },
+          "removidos": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "proximoCursor": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 1024,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "sincronizadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "items",
+          "removidos",
+          "sincronizadoEm"
+        ]
+      },
+      "Sincronizacaopropostas": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropostaResumo"
+            }
+          },
+          "removidos": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "proximoCursor": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 1024,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "sincronizadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "items",
+          "removidos",
+          "sincronizadoEm"
+        ]
+      },
+      "Sincronizacaocompras": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompraMobile"
+            }
+          },
+          "removidos": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "proximoCursor": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 1024,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "sincronizadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "items",
+          "removidos",
+          "sincronizadoEm"
+        ]
+      },
+      "Sincronizacaoentregas": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntregasEntrega"
+            }
+          },
+          "removidos": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "proximoCursor": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 1024,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "sincronizadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "items",
+          "removidos",
+          "sincronizadoEm"
+        ]
+      },
+      "EntregaInicio": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "compraId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "data": {
+            "type": "string",
+            "format": "date"
+          },
+          "localEntrega": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "id",
+          "compraId",
+          "data",
+          "localEntrega"
+        ]
+      },
+      "Inicio": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "cliente": {
+            "type": "string",
+            "const": "produtor"
+          },
+          "recurso": {
+            "type": "string",
+            "const": "inicio"
+          },
+          "propostas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropostaResumo"
+            }
+          },
+          "proximasEntregas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntregaInicio"
+            }
+          },
+          "editaisCompativeis": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sincronizadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "cliente",
+          "recurso",
+          "propostas",
+          "proximasEntregas",
+          "editaisCompativeis",
+          "sincronizadoEm"
+        ]
+      }
+    },
+    "parameters": {
+      "EditaisId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "UUID do recurso no caminho.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "example": "00000001-0000-4000-8000-000000000001"
+      },
+      "EditaisCorrelationId": {
+        "name": "X-Correlation-Id",
+        "in": "header",
+        "required": false,
+        "description": "UUID de rastreamento; gerado se ausente e devolvido na resposta.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "example": "00000099-0000-4000-8000-000000000001"
+      },
+      "OfertasId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "UUID do recurso no caminho.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "example": "00000001-0000-4000-8000-000000000001"
+      },
+      "OfertasCorrelationId": {
+        "name": "X-Correlation-Id",
+        "in": "header",
+        "required": false,
+        "description": "UUID de rastreamento; gerado se ausente e devolvido na resposta.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "example": "00000099-0000-4000-8000-000000000001"
+      },
+      "OfertasIdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "description": "UUID gerado pelo cliente. Escopo: sub autenticado + método + caminho normalizado. Reenvio idêntico retorna status/corpo/Location originais; conteúdo diferente ou operação ainda em curso: 409. Retenção mínima proposta: 30 dias.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "example": "00000098-0000-4000-8000-000000000001"
+      },
+      "ComprasId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "UUID do recurso no caminho.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "example": "00000001-0000-4000-8000-000000000001"
+      },
+      "ComprasCorrelationId": {
+        "name": "X-Correlation-Id",
+        "in": "header",
+        "required": false,
+        "description": "UUID de rastreamento; gerado se ausente e devolvido na resposta.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "example": "00000099-0000-4000-8000-000000000001"
+      },
+      "ComprasIdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "description": "UUID gerado pelo cliente. Escopo: sub autenticado + método + caminho normalizado. Reenvio idêntico retorna status/corpo/Location originais; conteúdo diferente ou operação ainda em curso: 409. Retenção mínima proposta: 30 dias.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "example": "00000098-0000-4000-8000-000000000001"
+      },
+      "EntregasId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "UUID do recurso no caminho.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "example": "00000001-0000-4000-8000-000000000001"
+      },
+      "EntregasCorrelationId": {
+        "name": "X-Correlation-Id",
+        "in": "header",
+        "required": false,
+        "description": "UUID de rastreamento; gerado se ausente e devolvido na resposta.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "example": "00000099-0000-4000-8000-000000000001"
+      },
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Cursor opaco assinado, vinculado a ator/papéis/filtros e snapshot de leitura; validade 10 min. Adulterado: 400; outro ator: 403; expirado/cache perdido: 410.",
+        "schema": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 1024,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "example": "ZXhlbXBsby1jdXJzb3ItYXNzaW5hZG8"
+      },
+      "AtualizadoDesde": {
+        "name": "atualizadoDesde",
+        "in": "query",
+        "required": false,
+        "description": "Limite exclusivo de observação pelo BFF, não instante de escrita no domínio. Use sincronizadoEm da última sincronização completa. Resposta congela limite superior; dados removidos aparecem em removidos. Janela de histórico indisponível: 410; instante futuro: 400.",
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "example": "2026-10-20T09:59:00-03:00"
+      },
+      "IfNoneMatch": {
+        "name": "If-None-Match",
+        "in": "header",
+        "required": false,
+        "description": "ETags da mesma URL/representação; comparação fraca em GET, após autenticar e autorizar. Se não mudou, 304 sem corpo. Aceita lista de entity-tags e * conforme HTTP.",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "example": "W/\"visao-produtor-1\""
+      }
+    },
+    "responses": {
+      "EditaisErro400": {
+        "description": "Corpo, parâmetro ou cabeçalho inválido, ausente ou não suportado.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EditaisErro"
+            },
+            "example": {
+              "code": "REQUISICAO_INVALIDA",
+              "message": "Corpo, parâmetro ou cabeçalho inválido, ausente ou não suportado.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "EditaisErro401": {
+        "description": "Token ausente, expirado ou inválido.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          },
+          "WWW-Authenticate": {
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer",
+            "description": "Desafio de autenticação Bearer."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EditaisErro"
+            },
+            "example": {
+              "code": "NAO_AUTENTICADO",
+              "message": "Token ausente, expirado ou inválido.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "EditaisErro403": {
+        "description": "Papel ou vínculo não autoriza esta operação.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EditaisErro"
+            },
+            "example": {
+              "code": "ACESSO_NEGADO",
+              "message": "Papel ou vínculo não autoriza esta operação.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "EditaisErro404": {
+        "description": "Recurso identificado não existe.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EditaisErro"
+            },
+            "example": {
+              "code": "RECURSO_NAO_ENCONTRADO",
+              "message": "Recurso identificado não existe.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "EditaisErro503": {
+        "description": "Dependência necessária indisponível. Não é garantia de ausência de efeito após perda da resposta; repetir com a mesma chave.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          },
+          "Retry-After": {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "example": 5,
+            "description": "Espera sugerida, em segundos, antes da repetição."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EditaisErro"
+            },
+            "example": {
+              "code": "DEPENDENCIA_INDISPONIVEL",
+              "message": "Dependência necessária indisponível. Não é garantia de ausência de efeito após perda da resposta; repetir com a mesma chave.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "OfertasErro400": {
+        "description": "Corpo, parâmetro ou cabeçalho inválido, ausente ou não suportado.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/OfertasErro"
+            },
+            "example": {
+              "code": "REQUISICAO_INVALIDA",
+              "message": "Corpo, parâmetro ou cabeçalho inválido, ausente ou não suportado.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "OfertasErro401": {
+        "description": "Token ausente, expirado ou inválido.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          },
+          "WWW-Authenticate": {
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer",
+            "description": "Desafio de autenticação Bearer."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/OfertasErro"
+            },
+            "example": {
+              "code": "NAO_AUTENTICADO",
+              "message": "Token ausente, expirado ou inválido.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "OfertasErro403": {
+        "description": "Papel ou vínculo não autoriza esta operação.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/OfertasErro"
+            },
+            "example": {
+              "code": "ACESSO_NEGADO",
+              "message": "Papel ou vínculo não autoriza esta operação.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "OfertasErro404": {
+        "description": "Recurso identificado não existe.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/OfertasErro"
+            },
+            "example": {
+              "code": "RECURSO_NAO_ENCONTRADO",
+              "message": "Recurso identificado não existe.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "OfertasErro409": {
+        "description": "Estado, versão, unicidade, vínculo de negócio ou chave idempotente em conflito.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/OfertasErro"
+            },
+            "example": {
+              "code": "CONFLITO_DE_ESTADO",
+              "message": "Estado, versão, unicidade, vínculo de negócio ou chave idempotente em conflito.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "OfertasErro503": {
+        "description": "Dependência necessária indisponível. Não é garantia de ausência de efeito após perda da resposta; repetir com a mesma chave.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          },
+          "Retry-After": {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "example": 5,
+            "description": "Espera sugerida, em segundos, antes da repetição."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/OfertasErro"
+            },
+            "example": {
+              "code": "DEPENDENCIA_INDISPONIVEL",
+              "message": "Dependência necessária indisponível. Não é garantia de ausência de efeito após perda da resposta; repetir com a mesma chave.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "ComprasErro400": {
+        "description": "Corpo, parâmetro ou cabeçalho inválido, ausente ou não suportado.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ComprasErro"
+            },
+            "example": {
+              "code": "REQUISICAO_INVALIDA",
+              "message": "Corpo, parâmetro ou cabeçalho inválido, ausente ou não suportado.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "ComprasErro401": {
+        "description": "Token ausente, expirado ou inválido.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          },
+          "WWW-Authenticate": {
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer",
+            "description": "Desafio de autenticação Bearer."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ComprasErro"
+            },
+            "example": {
+              "code": "NAO_AUTENTICADO",
+              "message": "Token ausente, expirado ou inválido.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "ComprasErro403": {
+        "description": "Papel ou vínculo não autoriza esta operação.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ComprasErro"
+            },
+            "example": {
+              "code": "ACESSO_NEGADO",
+              "message": "Papel ou vínculo não autoriza esta operação.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "ComprasErro404": {
+        "description": "Recurso identificado não existe.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ComprasErro"
+            },
+            "example": {
+              "code": "RECURSO_NAO_ENCONTRADO",
+              "message": "Recurso identificado não existe.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "ComprasErro409": {
+        "description": "Estado, versão, unicidade, vínculo de negócio ou chave idempotente em conflito.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ComprasErro"
+            },
+            "example": {
+              "code": "CONFLITO_DE_ESTADO",
+              "message": "Estado, versão, unicidade, vínculo de negócio ou chave idempotente em conflito.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "ComprasErro503": {
+        "description": "Dependência necessária indisponível. Não é garantia de ausência de efeito após perda da resposta; repetir com a mesma chave.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          },
+          "Retry-After": {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "example": 5,
+            "description": "Espera sugerida, em segundos, antes da repetição."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ComprasErro"
+            },
+            "example": {
+              "code": "DEPENDENCIA_INDISPONIVEL",
+              "message": "Dependência necessária indisponível. Não é garantia de ausência de efeito após perda da resposta; repetir com a mesma chave.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "EntregasErro400": {
+        "description": "Corpo, parâmetro ou cabeçalho inválido, ausente ou não suportado.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EntregasErro"
+            },
+            "example": {
+              "code": "REQUISICAO_INVALIDA",
+              "message": "Corpo, parâmetro ou cabeçalho inválido, ausente ou não suportado.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "EntregasErro401": {
+        "description": "Token ausente, expirado ou inválido.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          },
+          "WWW-Authenticate": {
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer",
+            "description": "Desafio de autenticação Bearer."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EntregasErro"
+            },
+            "example": {
+              "code": "NAO_AUTENTICADO",
+              "message": "Token ausente, expirado ou inválido.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "EntregasErro403": {
+        "description": "Papel ou vínculo não autoriza esta operação.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EntregasErro"
+            },
+            "example": {
+              "code": "ACESSO_NEGADO",
+              "message": "Papel ou vínculo não autoriza esta operação.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "EntregasErro404": {
+        "description": "Recurso identificado não existe.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EntregasErro"
+            },
+            "example": {
+              "code": "RECURSO_NAO_ENCONTRADO",
+              "message": "Recurso identificado não existe.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "EntregasErro503": {
+        "description": "Dependência necessária indisponível. Não é garantia de ausência de efeito após perda da resposta; repetir com a mesma chave.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identificador para rastreamento."
+          },
+          "Retry-After": {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "example": 5,
+            "description": "Espera sugerida, em segundos, antes da repetição."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EntregasErro"
+            },
+            "example": {
+              "code": "DEPENDENCIA_INDISPONIVEL",
+              "message": "Dependência necessária indisponível. Não é garantia de ausência de efeito após perda da resposta; repetir com a mesma chave.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "Erro410": {
+        "description": "Cursor ou janela incremental expirados; refazer sincronização completa.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "SINCRONIZACAO_EXPIRADA",
+              "message": "Cursor ou janela incremental expirados; refazer sincronização completa.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "Erro413": {
+        "description": "Corpo acima de 1 MiB, rejeitado no gateway.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "CORPO_EXCEDIDO",
+              "message": "Corpo acima de 1 MiB, rejeitado no gateway.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      },
+      "Erro429": {
+        "description": "Limite por IP ou identidade excedido; respeitar Retry-After.",
+        "headers": {
+          "X-Correlation-Id": {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "Retry-After": {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "example": 1
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            },
+            "example": {
+              "code": "LIMITE_EXCEDIDO",
+              "message": "Limite por IP ou identidade excedido; respeitar Retry-After.",
+              "details": [],
+              "correlationId": "00000099-0000-4000-8000-000000000001"
+            }
+          }
+        }
+      }
+    }
+  }
+}
