@@ -48,8 +48,9 @@
     background: var(--areia);
     border-radius: 10px;
     box-shadow: 0 18px 50px rgba(0, 0, 0, .45);
-    padding: 4.2vh 5vw 3vh;
+    padding: 4.6cqh 5.2cqw;
     flex-direction: column;
+    justify-content: flex-start;
     overflow: hidden;
     container-type: size;
   }
@@ -62,7 +63,7 @@
   h1 {
     font-size: 5.6cqw;
     line-height: 1.08;
-    margin: 0 0 1.2vh;
+    margin: 0 0 1.4cqh;
     color: var(--verde);
     letter-spacing: -.5px;
   }
@@ -78,7 +79,7 @@
 
   h2 {
     font-size: 3.9cqw;
-    margin: 0 0 1.8vh;
+    margin: 0 0 1.4cqh;
     color: var(--verde);
     line-height: 1.12;
   }
@@ -93,13 +94,32 @@
   }
 
   ul {
-    margin: 0;
-    padding-left: 1.1em;
+    margin: 1.2cqh 0;
+    padding-left: 0;
+    list-style: none;
     font-size: 2.15cqw;
-    line-height: 1.5;
+    line-height: 1.45;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
   }
 
-  li { margin-bottom: 1.1vh; }
+  li {
+    position: relative;
+    padding-left: 1.5em;
+    margin: 0;
+  }
+
+  li::before {
+    content: "•";
+    position: absolute;
+    left: .1em;
+    top: -.02em;
+    color: var(--verde-medio);
+    font-weight: 700;
+  }
+
   li b { color: var(--verde); }
   li .tag {
     display: inline-block;
@@ -112,14 +132,15 @@
   }
 
   .hook {
-    margin-top: auto;
+    margin-top: 1.5cqh;
     border-left: 10px solid var(--verde-medio);
     background: var(--verde-claro);
-    padding: 1.8vh 1.5vw;
+    padding: 2.2cqh 1.5vw;
     font-size: 2cqw;
     font-weight: 700;
     color: var(--verde);
     border-radius: 0 8px 8px 0;
+    flex: 0 0 auto;
   }
 
   .hook::before { display: none; }
@@ -129,10 +150,11 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: .5vh;
+    gap: 0;
     font-size: 1.55cqw;
     flex: 1;
-    justify-content: center;
+    justify-content: space-evenly;
+    padding: 1.5cqh 0;
   }
 
   .row { display: flex; gap: 1.1vw; justify-content: center; align-items: stretch; flex-wrap: nowrap; }
@@ -157,23 +179,34 @@
   .box.db { background: var(--cinza-claro); border-color: #90a4ae; color: #263238; border-radius: 8px/18px; }
   .box.mq { background: #fce4ec; border-color: #ad1457; color: #880e4f; border-style: dashed; }
 
-  .arrow { color: #546e7a; font-size: 1.8em; line-height: 1; font-weight: 700; }
+  .arrow { color: #37474f; font-size: 2.4em; line-height: 1; font-weight: 700; }
   .label { font-size: .85em; color: #546e7a; }
 
   /* comparação */
   .compare {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1.4vw;
+    grid-auto-rows: auto;
+    align-content: center;
+    gap: 2cqw;
     font-size: 1.75cqw;
+    flex: 1;
+    margin: 1.5cqh 0;
   }
+
+  .compare.roomy { font-size: 2.2cqw; grid-template-columns: 1fr; }
 
   .card {
     border: 3px solid var(--borda);
     border-radius: 8px;
-    padding: 1.6vh 1.2vw;
+    padding: 2.8cqh 1.4vw;
     background: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
+
+  .card-body { width: 100%; }
 
   .card h3 {
     margin: 0 0 1vh;
@@ -398,16 +431,20 @@
   <!-- 6 -->
   <section class="slide">
     <h2>Gateway e dois BFFs</h2>
-    <div class="compare">
+    <div class="compare roomy">
       <div class="card">
+        <div class="card-body">
         <h3>Gateway (NGINX)</h3>
         Entrada única, TLS, <code>auth_request</code> → JWT validado no <code>authn-verify</code>, rate limit, CORS, correlation-id.<br>
         <b>Não</b> agrega e <b>não</b> aplica regra de negócio.
+        </div>
       </div>
       <div class="card">
+        <div class="card-body">
         <h3>Dois BFFs, dois clientes</h3>
         <b>Prefeitura:</b> tela ampla, página de 50, objetos aninhados, dashboard.<br>
         <b>Produtor:</b> mobile, cursor de 10, payload achatado, ETag.
+        </div>
       </div>
     </div>
     <div class="hook">Mesmo recurso, respostas diferentes: o portal vê contexto; o aplicativo vê só o essencial.</div>
@@ -455,12 +492,16 @@
     <h2>CQRS em Compras</h2>
     <div class="compare">
       <div class="card bad">
+        <div class="card-body">
         <h3>Sem projeção</h3>
         Acompanhar uma compra exigiria <b>4 chamadas</b> — Editais, Ofertas, Compras e Entregas — e remontar a SAGA no cliente.
+        </div>
       </div>
       <div class="card good">
+        <div class="card-body">
         <h3>Com a projeção</h3>
         Uma consulta em <code>acompanhamento_compra</code>, atualizada por evento, com <code>versao</code> para não regredir.
+        </div>
       </div>
     </div>
     <ul>
