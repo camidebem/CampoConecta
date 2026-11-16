@@ -8,4 +8,5 @@ Thumbs.db
 # Ambiente e segredos locais
 .env
 .env.*
+!.env.example
 *.local
