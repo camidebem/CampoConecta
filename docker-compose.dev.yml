@@ -1,0 +1,15 @@
+# Apenas para desenvolvimento/teste local, ANTES do gateway existir:
+# publica os serviços em 127.0.0.1 para abrir o Swagger (/docs) e testar com curl.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+#   http://localhost:8001/docs  (editais)    http://localhost:8002/docs  (ofertas)
+#
+# No sistema completo só o gateway publica porta; não use este arquivo com --scale.
+
+services:
+  editais:
+    ports:
+      - "127.0.0.1:8001:8000"
+  ofertas:
+    ports:
+      - "127.0.0.1:8002:8000"
