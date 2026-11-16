@@ -1,0 +1,6 @@
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+# psycopg compilado contra a libpq do sistema (extensão C). O compilador
+# só existe no estágio "builder" do Dockerfile; a imagem final leva apenas libpq5.
+psycopg[c]==3.2.3
+psycopg-pool==3.2.4
