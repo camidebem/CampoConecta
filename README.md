@@ -130,8 +130,8 @@ reenvios recuperam a resposta original. Migrações são aplicadas na inicializa
 
 Os serviços usam `aplicacao`, `mensageria` e somente sua rede `dados-*`. Cada banco
 fica exclusivamente em sua rede interna; o RabbitMQ fica em `mensageria`, com
-volume nomeado e healthcheck. `borda` está declarada para a integração do gateway,
-`authn-verify` e BFFs. O gateway é o único publicador externo na porta
+volume nomeado e healthcheck. A `borda` contém o gateway, o `authn-verify`
+e os BFFs. O gateway é o único publicador externo na porta
 `127.0.0.1:8080`; os BFFs ficam nas redes `borda + aplicacao`.
 
 Para desenvolvimento, o override já existente permite acessar os Swagger de

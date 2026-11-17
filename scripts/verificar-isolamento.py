@@ -1,7 +1,7 @@
 """Prova DNS + TCP dos quatro bancos, com controle positivo das APIs.
 
 python3 scripts/verificar-isolamento.py --bff bff-prefeitura
-python3 scripts/verificar-isolamento.py --sonda  # preliminar, enquanto o BFF não existe
+python3 scripts/verificar-isolamento.py --sonda  # sonda opcional na rede aplicacao
 """
 
 import argparse
@@ -55,7 +55,7 @@ def main():
     print("OK: cada serviço alcança seu próprio banco.", flush=True)
 
     if args.bff:
-        assert args.bff in config["services"], "BFF ainda não integrado ao Compose. Use --sonda para a prova preliminar."
+        assert args.bff in config["services"], "BFF não encontrado no Compose."
         redes = set(config["services"][args.bff]["networks"])
         assert redes == {"borda", "aplicacao"}, f"Redes inesperadas no BFF: {redes}"
         resultado = compose("exec", "-T", args.bff, "python", "-c", CODIGO, json.dumps(alvos))
@@ -63,8 +63,7 @@ def main():
         print(f"Isolamento comprovado a partir de {args.bff}.")
     else:
         # Sonda descartável sem credenciais e sem nenhuma rede de dados.
-        # borda ainda não tem participantes; a aplicação é a rede compartilhada
-        # por onde o BFF alcançará os serviços. Não se cria um BFF fictício.
+        # A borda já possui participantes; esta sonda continua sendo apenas um controle opcional.
         rede = config["networks"]["aplicacao"]["name"]
         imagem = config["services"]["compras"]["image"]
         resultado = docker("run", "--rm", "--network", rede, "--entrypoint", "python",

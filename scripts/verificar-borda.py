@@ -67,6 +67,8 @@ def main():
     assert status == 200 and prefeitura["cliente"] == "prefeitura"
     assert prefeitura["papel"] == "gestor"
     assert prefeitura["instituicaoId"] == "00000000-0000-0000-0000-000000000001"
+    assert prefeitura["dashboard"]["compras"]["status"] in {"ok", "indisponivel"}
+    assert prefeitura["dashboard"]["entregas"]["status"] in {"ok", "indisponivel"}
     status, _ = requisicao(
         "/produtor/api/v1/inicio",
         token=token_prefeitura,

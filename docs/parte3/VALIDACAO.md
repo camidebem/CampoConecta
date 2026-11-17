@@ -10,7 +10,7 @@ ignorado pelo Git. Nenhuma credencial é incluída neste relatório.
 |---|---|
 | `docker compose config --quiet` | Configuração válida |
 | `docker compose up -d --build --wait --wait-timeout 180` | Subida concluída |
-| `docker compose ps` | Nove contêineres `healthy`, sem portas publicadas no Compose principal |
+| `docker compose ps` | Treze contêineres `healthy`, gateway publica somente `127.0.0.1:8080` |
 | Compilação Python com `compileall` | Sem erros nos dois novos serviços e scripts |
 | Healthchecks das APIs | Quatro respostas `200`, consultando o banco do próprio serviço |
 | RabbitMQ | Aplicação em execução; conexão TCP em 5672 a partir dos quatro serviços |

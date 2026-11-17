@@ -8,7 +8,7 @@
 
 Dois clientes acessam quatro serviços com bancos exclusivos. O portal precisa supervisionar editais, homologar planos e confirmar entregas; o aplicativo atende produtores em rede móvel e precisa de consultas compactas. A arquitetura usa NGINX com `auth_request`, um BFF por cliente e HATEOAS com responsabilidades divididas.
 
-Este ADR detalha o acesso às APIs e a apresentação por cliente. Os componentes ainda não estão implantados.
+Este ADR detalha o acesso às APIs e a apresentação por cliente. Os componentes da borda estão implantados nesta frente.
 
 ## Decisão proposta
 
@@ -44,7 +44,7 @@ As taxas, TTLs e timeouts são propostas não medidas. A lacuna de vínculo inst
 
 ## Validação e revisão
 
-Sintaxe/referências OpenAPI, exemplos, mapeamento de rotas e configuração NGINX são registrados em [VALIDACAO.md](../parte2/openapi/VALIDACAO.md). Não constituem teste de sistema em execução.
+Sintaxe/referências OpenAPI, exemplos, mapeamento de rotas e configuração NGINX são registrados em [VALIDACAO.md](../parte2/openapi/VALIDACAO.md). Na implementação atual, gateway, authn-verify e BFFs são executados e validados pelo Compose e pelo script `scripts/verificar-borda.py`.
 
 A revisão deve conferir compatibilidade dos clientes, autorização por recurso e consistência entre contratos, dados e mensagens. Mudanças precisam identificar consumidores afetados e atualizar os exemplos correspondentes.
 

@@ -38,7 +38,8 @@ começar, o reenvio da mesma operação ainda pode recuperar a resposta original
 Os serviços participam de `mensageria` porque serão os participantes da SAGA.
 Compartilhar `aplicacao` não dá acesso a bancos: estes não participam dessa rede
 e não publicam portas. A rede `borda` é declarada agora, mas só será criada pelo
-Compose quando tiver participantes. Nenhum gateway/BFF fictício foi adicionado.
+Compose ao integrar os participantes da borda. Nesta implementação existem gateway,
+authn-verify, bff-prefeitura e bff-produtor reais.
 
 ## RabbitMQ e persistência
 

@@ -42,6 +42,23 @@ async def consulta(base: str, caminho: str, authorization: str | None, correlati
         raise HTTPException(status_code=503, detail="Fonte interna indisponível.") from exc
 
 
+async def consulta_health(base: str, authorization: str | None, correlation_id: str):
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            response = await client.get(
+                f"{base}/health",
+                headers={
+                    "Authorization": authorization or "",
+                    "X-Correlation-Id": correlation_id,
+                },
+            )
+        if response.status_code >= 400:
+            return {"status": "indisponivel"}
+        return response.json()
+    except (httpx.HTTPError, ValueError):
+        return {"status": "indisponivel"}
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "servico": "bff-prefeitura"}
@@ -60,6 +77,8 @@ async def dashboard(
 
     editais = await consulta(EDITAIS_URL, "editais?pagina=1&tamanho=50&status=PUBLICADO",
                              authorization, correlation_id)
+    compras_health = await consulta_health(COMPRAS_URL, authorization, correlation_id)
+    entregas_health = await consulta_health(ENTREGAS_URL, authorization, correlation_id)
     return {
         "cliente": "prefeitura",
         "papel": x_authenticated_role,
@@ -67,6 +86,8 @@ async def dashboard(
         "dashboard": {
             "editaisPublicados": editais.get("paginacao", {}).get("total", 0),
             "itens": editais.get("items", [])[:10],
+            "compras": {"status": compras_health.get("status", "indisponivel")},
+            "entregas": {"status": entregas_health.get("status", "indisponivel")},
         },
         "fontes": ["editais", "compras", "entregas"],
     }
