@@ -5,7 +5,6 @@ import uuid
 
 import httpx
 from fastapi import FastAPI, Header, HTTPException, Request
-from fastapi.responses import JSONResponse
 
 
 app = FastAPI(title="CampoConecta - BFF Prefeitura", version="1.0.0")
@@ -24,10 +23,6 @@ async def correlation(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Correlation-Id"] = correlation_id
     return response
-
-
-def auth_role(headers: Header) -> str:
-    return headers.get("x-authenticated-role", "")
 
 
 async def consulta(base: str, caminho: str, authorization: str | None, correlation_id: str):
@@ -57,6 +52,7 @@ async def dashboard(
     request: Request,
     authorization: str | None = Header(default=None),
     x_authenticated_role: str | None = Header(default=None),
+    x_authenticated_institution: str | None = Header(default=None),
 ):
     if x_authenticated_role not in {"gestor", "escola"}:
         raise HTTPException(status_code=403, detail="Papel não autorizado.")
@@ -67,6 +63,7 @@ async def dashboard(
     return {
         "cliente": "prefeitura",
         "papel": x_authenticated_role,
+        "instituicaoId": x_authenticated_institution,
         "dashboard": {
             "editaisPublicados": editais.get("paginacao", {}).get("total", 0),
             "itens": editais.get("items", [])[:10],
