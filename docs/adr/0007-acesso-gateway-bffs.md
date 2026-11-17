@@ -1,6 +1,6 @@
 # ADR 0007 — Acesso por NGINX e dois BFFs
 
-- **Status:** proposto.
+- **Status:** proposta com implementação local de desenvolvimento.
 - **Data:** 2026-10-20.
 - **Relacionados:** [gateway e BFFs](../parte2/04-gateway-bffs.md), [conciliações ADR 0006](0006-conciliacao-contratos-rest.md), [índice dos contratos](../parte2/openapi/README.md).
 
@@ -47,3 +47,12 @@ As taxas, TTLs e timeouts são propostas não medidas. A lacuna de vínculo inst
 Sintaxe/referências OpenAPI, exemplos, mapeamento de rotas e configuração NGINX são registrados em [VALIDACAO.md](../parte2/openapi/VALIDACAO.md). Não constituem teste de sistema em execução.
 
 A revisão deve conferir compatibilidade dos clientes, autorização por recurso e consistência entre contratos, dados e mensagens. Mudanças precisam identificar consumidores afetados e atualizar os exemplos correspondentes.
+
+## Implementação de desenvolvimento
+
+Na Parte 3, o `authn-verify` substitui o provedor externo apenas no ambiente local:
+emite e valida JWT HS256 usando `JWT_SECRET`, com validade configurável por
+`JWT_EXPIRES_MINUTES`. O gateway NGINX delega a validação por `auth_request`.
+O componente não substitui um provedor de identidade em produção e não mantém
+usuários ou ligações institucionais em banco. BFFs permanecem sem banco próprio
+e agregam respostas das APIs internas.
