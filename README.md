@@ -179,6 +179,24 @@ Para validar a borda após a subida:
 py -3 scripts/verificar-borda.py
 ```
 
+Para demonstrar manualmente a emissão de JWT e as duas respostas diferentes:
+
+```powershell
+$prefeitura = Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8080/prefeitura/token `
+  -ContentType application/json `
+  -Body '{"sub":"gestor-1","papel":"gestor","instituicaoId":"00000000-0000-0000-0000-000000000001"}'
+
+$produtor = Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8080/produtor/token `
+  -ContentType application/json `
+  -Body '{"sub":"produtor-1","papel":"produtor","produtorId":"00000000-0000-0000-0000-000000000002"}'
+
+Invoke-RestMethod -Headers @{Authorization="Bearer $($prefeitura.token)"} `
+  -Uri http://127.0.0.1:8080/prefeitura/api/v1/dashboard
+
+Invoke-RestMethod -Headers @{Authorization="Bearer $($produtor.token)"} `
+  -Uri http://127.0.0.1:8080/produtor/api/v1/inicio
+```
+
 Para encerrar preservando os dados: `docker compose down`. Os quatro bancos e o
 RabbitMQ usam volumes nomeados. As credenciais iniciais são aplicadas somente na
 criação dos volumes; trocar o `.env` depois não altera as senhas já persistidas.

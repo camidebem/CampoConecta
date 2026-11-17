@@ -53,6 +53,11 @@ def main():
 
     status, _ = requisicao("/prefeitura/api/v1/dashboard")
     assert status in {401, 403}, status
+    status, _ = requisicao(
+        "/prefeitura/api/v1/dashboard",
+        token="jwt.invalido",
+    )
+    assert status in {401, 403}, status
 
     token_prefeitura = token("gestor", "00000000-0000-0000-0000-000000000001")
     status, prefeitura = requisicao(
@@ -61,6 +66,12 @@ def main():
     )
     assert status == 200 and prefeitura["cliente"] == "prefeitura"
     assert prefeitura["papel"] == "gestor"
+    assert prefeitura["instituicaoId"] == "00000000-0000-0000-0000-000000000001"
+    status, _ = requisicao(
+        "/produtor/api/v1/inicio",
+        token=token_prefeitura,
+    )
+    assert status in {401, 403}, status
 
     token_produtor = token("produtor", "00000000-0000-0000-0000-000000000002")
     status, produtor = requisicao(
@@ -69,8 +80,13 @@ def main():
     )
     assert status == 200 and produtor["cliente"] == "produtor"
     assert produtor["produtorId"] == "00000000-0000-0000-0000-000000000002"
+    status, _ = requisicao(
+        "/prefeitura/api/v1/dashboard",
+        token=token_produtor,
+    )
+    assert status in {401, 403}, status
 
-    print("OK: gateway, JWT, dashboard da prefeitura e inicio do produtor.")
+    print("OK: gateway, JWT valido/invalido, papeis cruzados, dashboard da prefeitura e inicio do produtor.")
 
 
 if __name__ == "__main__":
