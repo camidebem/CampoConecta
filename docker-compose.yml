@@ -1,0 +1,111 @@
+# CampoConecta — sistema completo com um único comando:
+#   cp .env.example .env    (e troque as senhas)
+#   docker compose up -d --build
+#
+# Redes por camada:
+#   aplicacao        serviços de domínio (e BFFs) conversam entre si
+#   dados-<serviço>  internal: só o serviço dono alcança o próprio banco
+# (as redes borda e mensageria entram com gateway/BFFs e RabbitMQ)
+
+name: campoconecta
+
+# Bloco comum às 4 instâncias PostgreSQL (mesma imagem customizada).
+x-postgres: &postgres
+  build: ./infra/postgres
+  image: campoconecta/postgres:16
+  restart: unless-stopped
+
+services:
+  # ------------------------------------------------------------------ dados
+  pg-editais:
+    <<: *postgres
+    environment:
+      POSTGRES_DB: editais
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${PG_ADMIN_PASSWORD:?defina PG_ADMIN_PASSWORD no .env}
+      APP_DB_USER: app_editais
+      APP_DB_PASSWORD: ${EDITAIS_DB_PASSWORD:?defina EDITAIS_DB_PASSWORD no .env}
+    volumes:
+      - pg-editais-dados:/var/lib/postgresql/data
+    networks: [dados-editais]
+
+  pg-ofertas:
+    <<: *postgres
+    environment:
+      POSTGRES_DB: ofertas
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${PG_ADMIN_PASSWORD:?defina PG_ADMIN_PASSWORD no .env}
+      APP_DB_USER: app_ofertas
+      APP_DB_PASSWORD: ${OFERTAS_DB_PASSWORD:?defina OFERTAS_DB_PASSWORD no .env}
+    volumes:
+      - pg-ofertas-dados:/var/lib/postgresql/data
+    networks: [dados-ofertas]
+
+  pg-compras:
+    <<: *postgres
+    environment:
+      POSTGRES_DB: compras
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${PG_ADMIN_PASSWORD:?defina PG_ADMIN_PASSWORD no .env}
+      APP_DB_USER: app_compras
+      APP_DB_PASSWORD: ${COMPRAS_DB_PASSWORD:?defina COMPRAS_DB_PASSWORD no .env}
+    volumes:
+      - pg-compras-dados:/var/lib/postgresql/data
+    networks: [dados-compras]
+
+  pg-entregas:
+    <<: *postgres
+    environment:
+      POSTGRES_DB: entregas
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${PG_ADMIN_PASSWORD:?defina PG_ADMIN_PASSWORD no .env}
+      APP_DB_USER: app_entregas
+      APP_DB_PASSWORD: ${ENTREGAS_DB_PASSWORD:?defina ENTREGAS_DB_PASSWORD no .env}
+    volumes:
+      - pg-entregas-dados:/var/lib/postgresql/data
+    networks: [dados-entregas]
+
+  # -------------------------------------------------------- serviços de domínio
+  editais:
+    build: ./servicos/editais
+    image: campoconecta/editais:local
+    restart: unless-stopped
+    environment:
+      SERVICE_NAME: editais
+      DATABASE_URL: postgresql://app_editais:${EDITAIS_DB_PASSWORD}@pg-editais:5432/editais
+    depends_on:
+      pg-editais:
+        condition: service_healthy
+    networks: [aplicacao, dados-editais]
+
+  ofertas:
+    build: ./servicos/ofertas
+    image: campoconecta/ofertas:local
+    restart: unless-stopped
+    environment:
+      SERVICE_NAME: ofertas
+      DATABASE_URL: postgresql://app_ofertas:${OFERTAS_DB_PASSWORD}@pg-ofertas:5432/ofertas
+    depends_on:
+      pg-ofertas:
+        condition: service_healthy
+    networks: [aplicacao, dados-ofertas]
+
+  # compras e entregas: mesmo formato (DATABASE_URL apontando para pg-compras / pg-entregas,
+  # redes [aplicacao, dados-compras] / [aplicacao, dados-entregas]).
+
+networks:
+  aplicacao: {}
+  dados-editais:
+    internal: true
+  dados-ofertas:
+    internal: true
+  dados-compras:
+    internal: true
+  dados-entregas:
+    internal: true
+
+volumes:
+  pg-editais-dados: {}
+  pg-ofertas-dados: {}
+  pg-compras-dados: {}
+  pg-entregas-dados: {}
