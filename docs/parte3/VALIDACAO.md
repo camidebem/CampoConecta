@@ -38,12 +38,13 @@ criado pelo próprio teste. A subida normal não cria dados de demonstração.
 
 ## Limites da evidência
 
-O modo `--sonda` verifica a segmentação de rede. A execução a partir dos BFFs
-reais e a gravação final com esses componentes dependem da frente de borda.
-O script oferece `--bff bff-prefeitura` e `--bff bff-produtor` para essa etapa.
+O modo `--sonda` verifica a segmentação de rede. O script também oferece
+`--bff bff-prefeitura` e `--bff bff-produtor` para executar a mesma prova
+dentro dos componentes reais da borda.
 
-Não foram validados JWT, autorização por recurso, SAGA, consumidores, outbox ou
-CQRS. Esses componentes não são implementados por esta frente. O healthcheck de
+O JWT de desenvolvimento, os BFFs e o gateway desta frente foram validados em
+execução. SAGA, consumidores, outbox e CQRS continuam fora desta etapa. Não
+devem ser confundidos com controles já implementados nesta frente. O healthcheck de
 cada serviço de domínio mede o próprio banco; não afirma disponibilidade de
 todas as dependências HTTP nem processamento de mensagens.
 
@@ -51,3 +52,12 @@ O [gravador](../../scripts/gravar-demonstracao.py) registra as saídas reais em 
 projeto separado, com volumes novos e imagens possivelmente em cache. Evidências
 locais ficam em `evidencias.local/`, sem entrar no Git. A gravação preliminar
 identifica explicitamente o uso de sonda.
+
+### Validação da borda
+
+Executar após a subida completa:
+
+```sh
+docker compose up -d --build --wait --wait-timeout 240
+py -3 scripts/verificar-borda.py
+```
