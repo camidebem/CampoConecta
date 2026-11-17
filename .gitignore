@@ -10,3 +10,8 @@ Thumbs.db
 .env.*
 !.env.example
 *.local
+
+# Python e evidências locais de execução
+__pycache__/
+*.py[cod]
+evidencias.local/
