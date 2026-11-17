@@ -13,8 +13,10 @@ FROM postgres:16-alpine
 
 COPY --chmod=0755 init/01-usuario-aplicacao.sh /docker-entrypoint-initdb.d/
 
-HEALTHCHECK --interval=5s --timeout=3s --start-period=20s --retries=5 \
-  CMD pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" || exit 1
+# TCP só fica disponível no servidor definitivo, após os scripts de init.
+# O servidor temporário do entrypoint aceita socket local antes dessa etapa.
+HEALTHCHECK --interval=5s --timeout=3s --start-period=60s --retries=12 \
+  CMD pg_isready -h 127.0.0.1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" || exit 1
 
 CMD ["postgres", \
      "-c", "max_connections=50", \

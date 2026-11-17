@@ -1,24 +1,48 @@
-# CampoConecta — sistema completo com um único comando:
+# CampoConecta — serviços de domínio e infraestrutura da Parte 3:
 #   cp .env.example .env    (e troque as senhas)
 #   docker compose up -d --build
 #
 # Redes por camada:
 #   aplicacao        serviços de domínio (e BFFs) conversam entre si
 #   dados-<serviço>  internal: só o serviço dono alcança o próprio banco
-# (as redes borda e mensageria entram com gateway/BFFs e RabbitMQ)
+#   mensageria       broker e participantes da futura SAGA
+#   borda            reservada para gateway, authn-verify e BFFs
+# Gateway/BFFs entram na frente de trabalho de borda. Só o gateway publicará porta.
 
 name: campoconecta
 
 # Bloco comum às 4 instâncias PostgreSQL (mesma imagem customizada).
 x-postgres: &postgres
-  build: ./infra/postgres
   image: campoconecta/postgres:16
+  pull_policy: never
   restart: unless-stopped
 
 services:
+  # -------------------------------------------------------------- mensageria
+  rabbitmq:
+    image: rabbitmq:4.1-alpine
+    hostname: rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?defina RABBITMQ_USER no .env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?defina RABBITMQ_PASSWORD no .env}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:?defina RABBITMQ_VHOST no .env}
+    volumes:
+      - rabbitmq-dados:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_port_connectivity"]
+      interval: 10s
+      timeout: 15s
+      start_period: 60s
+      retries: 12
+    networks: [mensageria]
+
   # ------------------------------------------------------------------ dados
   pg-editais:
     <<: *postgres
+    # Um único build para a imagem comum: evita quatro exports concorrentes
+    # para a mesma tag em instalações com o image store do containerd.
+    build: ./infra/postgres
     environment:
       POSTGRES_DB: editais
       POSTGRES_USER: admin
@@ -73,10 +97,13 @@ services:
     environment:
       SERVICE_NAME: editais
       DATABASE_URL: postgresql://app_editais:${EDITAIS_DB_PASSWORD}@pg-editais:5432/editais
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/${RABBITMQ_VHOST}
     depends_on:
       pg-editais:
         condition: service_healthy
-    networks: [aplicacao, dados-editais]
+      rabbitmq:
+        condition: service_healthy
+    networks: [aplicacao, dados-editais, mensageria]
 
   ofertas:
     build: ./servicos/ofertas
@@ -85,16 +112,56 @@ services:
     environment:
       SERVICE_NAME: ofertas
       DATABASE_URL: postgresql://app_ofertas:${OFERTAS_DB_PASSWORD}@pg-ofertas:5432/ofertas
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/${RABBITMQ_VHOST}
     depends_on:
       pg-ofertas:
         condition: service_healthy
-    networks: [aplicacao, dados-ofertas]
+      rabbitmq:
+        condition: service_healthy
+    networks: [aplicacao, dados-ofertas, mensageria]
 
-  # compras e entregas: mesmo formato (DATABASE_URL apontando para pg-compras / pg-entregas,
-  # redes [aplicacao, dados-compras] / [aplicacao, dados-entregas]).
+  compras:
+    build: ./servicos/compras
+    image: campoconecta/compras:local
+    restart: unless-stopped
+    environment:
+      SERVICE_NAME: compras
+      DATABASE_URL: postgresql://app_compras:${COMPRAS_DB_PASSWORD}@pg-compras:5432/compras
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/${RABBITMQ_VHOST}
+      EDITAIS_URL: http://editais:8000
+      OFERTAS_URL: http://ofertas:8000
+      HTTP_TIMEOUT: "2"
+    depends_on:
+      pg-compras:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      editais:
+        condition: service_healthy
+      ofertas:
+        condition: service_healthy
+    networks: [aplicacao, dados-compras, mensageria]
+
+  entregas:
+    build: ./servicos/entregas
+    image: campoconecta/entregas:local
+    restart: unless-stopped
+    environment:
+      SERVICE_NAME: entregas
+      DATABASE_URL: postgresql://app_entregas:${ENTREGAS_DB_PASSWORD}@pg-entregas:5432/entregas
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/${RABBITMQ_VHOST}
+    depends_on:
+      pg-entregas:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks: [aplicacao, dados-entregas, mensageria]
 
 networks:
+  borda: {}
   aplicacao: {}
+  mensageria:
+    internal: true
   dados-editais:
     internal: true
   dados-ofertas:
@@ -105,6 +172,7 @@ networks:
     internal: true
 
 volumes:
+  rabbitmq-dados: {}
   pg-editais-dados: {}
   pg-ofertas-dados: {}
   pg-compras-dados: {}

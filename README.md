@@ -79,6 +79,106 @@ O CampoConecta atua como uma ponte direta entre a oferta (produtores locais) e a
 - **Logística:** A entrega dos alimentos é agendada e, posteriormente, confirmada fisicamente na escola recebedora.
 - **Pagamento:** Após a confirmação do recebimento da mercadoria, o sistema libera o pagamento ao produtor.
 
+## Executar a Parte 3
+
+Pré-requisitos: Docker Engine ou Docker Desktop com contêineres Linux e Docker Compose v2.
+No Windows, habilite a integração com a distribuição WSL se executar os comandos pelo Ubuntu.
+
+Na raiz do repositório, prepare o ambiente uma vez:
+
+```powershell
+Copy-Item .env.example .env
+# Edite .env: substitua as senhas e JWT_SECRET por valores próprios.
+```
+
+Use letras e números nas credenciais que entram nas URLs. `.env` é ignorado pelo Git;
+`.env.example` contém somente exemplos. `JWT_SECRET` está reservado para o futuro
+`authn-verify`, ainda não incluído nesta frente.
+
+Com o `.env` configurado, um comando constrói as imagens e sobe o ambiente:
+
+```sh
+docker compose up -d --build
+```
+
+Para aguardar todos os healthchecks e conferir o resultado:
+
+```sh
+docker compose up -d --build --wait --wait-timeout 180
+docker compose ps
+```
+
+Esta frente contém **nove contêineres**: quatro serviços FastAPI, quatro PostgreSQL
+e RabbitMQ. Todos devem aparecer como `healthy`. A primeira construção baixa
+imagens e compila o driver PostgreSQL; pode levar alguns minutos.
+
+| Serviço | Operações implementadas nesta frente |
+|---|---|
+| Compras | `POST /api/v1/propostas`, `GET /api/v1/propostas/{id}` |
+| Entregas | `POST /api/v1/capacidades`, `GET /api/v1/capacidades/{id}` |
+| Todos os serviços de domínio | `GET /health`, consultando o próprio banco |
+
+Compras valida referências por HTTP em Editais e Ofertas e grava uma proposta
+`ENVIADA`, sem reservar saldo. Entregas grava capacidades e rejeita janelas
+sobrepostas para a mesma escola. Escritas exigem `Idempotency-Key` UUID e os
+reenvios recuperam a resposta original. Migrações são aplicadas na inicialização.
+
+Os serviços usam `aplicacao`, `mensageria` e somente sua rede `dados-*`. Cada banco
+fica exclusivamente em sua rede interna; o RabbitMQ fica em `mensageria`, com
+volume nomeado e healthcheck. `borda` está declarada para a integração do gateway,
+`authn-verify` e BFFs. **Esta frente não publica portas.** A frente do Daniel
+adicionará os BFFs em `borda + aplicacao` e o gateway como único publicador.
+
+Para desenvolvimento, o override já existente permite acessar os Swagger de
+Editais e Ofertas em `http://localhost:8001/docs` e `http://localhost:8002/docs`:
+
+```sh
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+```
+
+Esse override publica portas de desenvolvimento e não faz parte da demonstração
+final de entrada única pelo gateway. Compras e Entregas são verificados pela
+rede interna, sem adicionar portas ao host.
+
+### Verificação e demonstração
+
+Com Python 3.10+ e o ambiente em execução, na raiz:
+
+```sh
+docker compose config --quiet
+python3 scripts/verificar-parte3.py
+python3 scripts/verificar-isolamento.py --sonda
+```
+
+O primeiro script testa as APIs e cria dados de demonstração persistentes. Como
+a publicação de edital ainda não tem endpoint implementado, ele publica **somente
+o edital de teste** por SQL executado pelo serviço Editais, dono daquele banco.
+Não há endpoint público para criar compras nem publicação automática em produção.
+
+A sonda comprova acesso às APIs e bloqueio dos quatro bancos por DNS e por IP
+direto, a partir de um contêiner descartável na rede `aplicacao`, sem credenciais.
+Após integrar os BFFs, execute a prova a partir do componente real:
+
+```sh
+python3 scripts/verificar-isolamento.py --bff bff-prefeitura
+python3 scripts/verificar-isolamento.py --bff bff-produtor
+```
+
+O modo `--bff` exige o BFF no Compose e nas redes corretas; não substitui o
+componente por uma sonda. O [roteiro do vídeo](docs/parte3/05-roteiro-video.md)
+detalha a subida com volumes novos e as evidências a mostrar.
+
+Para encerrar preservando os dados: `docker compose down`. Os quatro bancos e o
+RabbitMQ usam volumes nomeados. As credenciais iniciais são aplicadas somente na
+criação dos volumes; trocar o `.env` depois não altera as senhas já persistidas.
+
+Limites desta etapa: autenticação/autorização por recurso e provisionamento de
+vínculos institucionais ainda dependem da integração de borda e da conciliação
+dos contratos. O modelo base mantém idempotência sem escopo por usuário.
+RabbitMQ está preparado; SAGA, consumidores, outbox e CQRS entram na Parte 4.
+Detalhes em [serviços, redes e mensageria](docs/parte3/04-servicos-redes-mensageria.md).
+Os resultados reproduzidos estão no [relatório de validação](docs/parte3/VALIDACAO.md).
+
 ## 📚 Documentação
 
 A documentação da **Parte 2 (arquitetura)** fica em `docs/`. O ponto de partida é a base comum, que fixa serviços, contratos e decisões compartilhadas por todos os documentos.
