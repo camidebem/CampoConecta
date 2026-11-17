@@ -51,8 +51,12 @@ servicos/<nome>/
 |---|---|
 | Editais | `POST/GET /prefeituras`, `POST/GET /escolas`, `POST /editais`, `GET /editais` (paginado, filtros `status`, `prefeituraId`, `produto`), `GET /editais/{id}` |
 | Ofertas | `POST/GET /produtores`, `POST /ofertas`, `GET /ofertas` (paginado, filtros `ativa`, `produto`), `GET /ofertas/{id}` |
+| Compras | `POST /propostas`, `GET /propostas/{id}`; validação de referências via HTTP e snapshot histórico |
+| Entregas | `POST /capacidades`, `GET /capacidades/{id}`; validação de janelas e proteção contra sobreposição |
 
 Todos os `POST` exigem `Idempotency-Key` (UUID). Reenvio igual devolve a resposta original com `Idempotent-Replayed: true`; mesma chave com outro corpo devolve `409`.
+
+Compras também usa `EDITAIS_URL`, `OFERTAS_URL` e `HTTP_TIMEOUT` (segundos) para consultas internas. A configuração HTTP fica em `app/dependencias.py`. Os quatro serviços participam de `mensageria`, além de `aplicacao` e da própria rede de dados; o `RABBITMQ_URL` recebido por ambiente será consumido na Parte 4.
 
 ## Fora do escopo desta etapa
 
