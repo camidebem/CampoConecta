@@ -51,16 +51,12 @@ mesma variável. Use o Compose principal, sem override que publique os serviços
 6. Mostre `docker compose down` e uma nova subida para explicar que os volumes
    persistem. Não use `down -v` na gravação com dados que devam ser preservados.
 
-## Enquanto os BFFs não estiverem integrados
+## Demonstração preliminar opcional
 
-É possível gravar uma demonstração preliminar executando
+Antes da integração completa da borda, é possível usar
 `python3 scripts/verificar-isolamento.py --sonda`. A sonda é um contêiner
-descartável na rede `aplicacao`, sem credenciais de banco. Identifique esse modo
-explicitamente: ele verifica a segmentação, mas **não substitui a evidência final
-executada dentro dos BFFs**.
-
-A criação do vídeo final com o BFF depende da frente do Daniel. O roteiro e os
-verificadores ficam prontos para repetir a demonstração assim que ela for integrada.
+descartável na rede `aplicacao`, sem credenciais de banco. Após a integração,
+prefira a execução real com `--bff bff-prefeitura` ou `--bff bff-produtor`.
 
 ## Gravação reproduzível do terminal
 

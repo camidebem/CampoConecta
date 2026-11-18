@@ -1,0 +1,73 @@
+"""BFF móvel do produtor."""
+
+import os
+import uuid
+
+import httpx
+from fastapi import FastAPI, Header, HTTPException, Request
+
+
+app = FastAPI(title="CampoConecta - BFF Produtor", version="1.0.0")
+EDITAIS_URL = os.environ.get("EDITAIS_URL", "http://editais:8000").rstrip("/")
+OFERTAS_URL = os.environ.get("OFERTAS_URL", "http://ofertas:8000").rstrip("/")
+TIMEOUT = float(os.environ.get("HTTP_TIMEOUT", "2"))
+
+
+@app.middleware("http")
+async def correlation(request: Request, call_next):
+    try:
+        correlation_id = str(uuid.UUID(request.headers.get("x-correlation-id", "")))
+    except ValueError:
+        correlation_id = str(uuid.uuid4())
+    response = await call_next(request)
+    response.headers["X-Correlation-Id"] = correlation_id
+    return response
+
+
+async def consulta(base: str, caminho: str, authorization: str | None, correlation_id: str):
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            response = await client.get(
+                f"{base}/api/v1/{caminho}",
+                headers={
+                    "Authorization": authorization or "",
+                    "X-Correlation-Id": correlation_id,
+                },
+            )
+        if response.status_code >= 400:
+            raise HTTPException(status_code=503, detail="Fonte interna indisponível.")
+        return response.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        raise HTTPException(status_code=503, detail="Fonte interna indisponível.") from exc
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "servico": "bff-produtor"}
+
+
+@app.get("/api/v1/inicio")
+async def inicio(
+    request: Request,
+    authorization: str | None = Header(default=None),
+    x_authenticated_role: str | None = Header(default=None),
+    x_authenticated_producer: str | None = Header(default=None),
+):
+    if x_authenticated_role != "produtor":
+        raise HTTPException(status_code=403, detail="Papel não autorizado.")
+    correlation_id = request.headers.get("x-correlation-id", str(uuid.uuid4()))
+
+    editais = await consulta(EDITAIS_URL, "editais?pagina=1&tamanho=50&status=PUBLICADO",
+                             authorization, correlation_id)
+    ofertas = await consulta(OFERTAS_URL, "ofertas?pagina=1&tamanho=50&ativa=true",
+                             authorization, correlation_id)
+    return {
+        "cliente": "produtor",
+        "produtorId": x_authenticated_producer,
+        "inicio": {
+            "editaisPublicados": editais.get("paginacao", {}).get("total", 0),
+            "ofertasAtivas": ofertas.get("paginacao", {}).get("total", 0),
+            "proximosEditais": editais.get("items", [])[:3],
+            "ofertas": ofertas.get("items", [])[:3],
+        },
+    }

@@ -6,8 +6,8 @@
 #   aplicacao        serviços de domínio (e BFFs) conversam entre si
 #   dados-<serviço>  internal: só o serviço dono alcança o próprio banco
 #   mensageria       broker e participantes da futura SAGA
-#   borda            reservada para gateway, authn-verify e BFFs
-# Gateway/BFFs entram na frente de trabalho de borda. Só o gateway publicará porta.
+#   borda            gateway, authn-verify e BFFs
+# Só o gateway publica porta para o ambiente externo.
 
 name: campoconecta
 
@@ -18,6 +18,64 @@ x-postgres: &postgres
   restart: unless-stopped
 
 services:
+  # --------------------------------------------------------------- borda
+  gateway:
+    build: ./infra/gateway
+    image: campoconecta/gateway:local
+    restart: unless-stopped
+    depends_on:
+      authn-verify:
+        condition: service_healthy
+      bff-prefeitura:
+        condition: service_healthy
+      bff-produtor:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:80"
+    networks: [borda]
+
+  authn-verify:
+    build: ./authn-verify
+    image: campoconecta/authn-verify:local
+    restart: unless-stopped
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
+      JWT_EXPIRES_MINUTES: ${JWT_EXPIRES_MINUTES:-60}
+    networks: [borda]
+
+  bff-prefeitura:
+    build: ./bff-prefeitura
+    image: campoconecta/bff-prefeitura:local
+    restart: unless-stopped
+    environment:
+      EDITAIS_URL: http://editais:8000
+      COMPRAS_URL: http://compras:8000
+      ENTREGAS_URL: http://entregas:8000
+      HTTP_TIMEOUT: "2"
+    depends_on:
+      editais:
+        condition: service_healthy
+      compras:
+        condition: service_healthy
+      entregas:
+        condition: service_healthy
+    networks: [borda, aplicacao]
+
+  bff-produtor:
+    build: ./bff-produtor
+    image: campoconecta/bff-produtor:local
+    restart: unless-stopped
+    environment:
+      EDITAIS_URL: http://editais:8000
+      OFERTAS_URL: http://ofertas:8000
+      HTTP_TIMEOUT: "2"
+    depends_on:
+      editais:
+        condition: service_healthy
+      ofertas:
+        condition: service_healthy
+    networks: [borda, aplicacao]
+
   # -------------------------------------------------------------- mensageria
   rabbitmq:
     image: rabbitmq:4.1-alpine

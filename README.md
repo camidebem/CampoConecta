@@ -92,8 +92,8 @@ Copy-Item .env.example .env
 ```
 
 Use letras e números nas credenciais que entram nas URLs. `.env` é ignorado pelo Git;
-`.env.example` contém somente exemplos. `JWT_SECRET` está reservado para o futuro
-`authn-verify`, ainda não incluído nesta frente.
+`.env.example` contém somente exemplos. `JWT_SECRET` é usado pelo `authn-verify`
+de desenvolvimento desta frente.
 
 Com o `.env` configurado, um comando constrói as imagens e sobe o ambiente:
 
@@ -108,15 +108,20 @@ docker compose up -d --build --wait --wait-timeout 180
 docker compose ps
 ```
 
-Esta frente contém **nove contêineres**: quatro serviços FastAPI, quatro PostgreSQL
-e RabbitMQ. Todos devem aparecer como `healthy`. A primeira construção baixa
-imagens e compila o driver PostgreSQL; pode levar alguns minutos.
+Esta frente completa contém **treze contêineres**: gateway, authn-verify,
+dois BFFs, quatro serviços FastAPI, quatro PostgreSQL e RabbitMQ. Todos devem
+aparecer como `healthy`. A primeira construção baixa imagens e compila o
+driver PostgreSQL; pode levar alguns minutos.
 
 | Serviço | Operações implementadas nesta frente |
 |---|---|
 | Compras | `POST /api/v1/propostas`, `GET /api/v1/propostas/{id}` |
 | Entregas | `POST /api/v1/capacidades`, `GET /api/v1/capacidades/{id}` |
 | Todos os serviços de domínio | `GET /health`, consultando o próprio banco |
+| Gateway | `/health` |
+| authn-verify | emissão e validação JWT de desenvolvimento |
+| BFF prefeitura | `GET /api/v1/dashboard` |
+| BFF produtor | `GET /api/v1/inicio` |
 
 Compras valida referências por HTTP em Editais e Ofertas e grava uma proposta
 `ENVIADA`, sem reservar saldo. Entregas grava capacidades e rejeita janelas
@@ -125,9 +130,9 @@ reenvios recuperam a resposta original. Migrações são aplicadas na inicializa
 
 Os serviços usam `aplicacao`, `mensageria` e somente sua rede `dados-*`. Cada banco
 fica exclusivamente em sua rede interna; o RabbitMQ fica em `mensageria`, com
-volume nomeado e healthcheck. `borda` está declarada para a integração do gateway,
-`authn-verify` e BFFs. **Esta frente não publica portas.** A frente do Daniel
-adicionará os BFFs em `borda + aplicacao` e o gateway como único publicador.
+volume nomeado e healthcheck. A `borda` contém o gateway, o `authn-verify`
+e os BFFs. O gateway é o único publicador externo na porta
+`127.0.0.1:8080`; os BFFs ficam nas redes `borda + aplicacao`.
 
 Para desenvolvimento, o override já existente permite acessar os Swagger de
 Editais e Ofertas em `http://localhost:8001/docs` e `http://localhost:8002/docs`:
@@ -167,6 +172,30 @@ python3 scripts/verificar-isolamento.py --bff bff-produtor
 O modo `--bff` exige o BFF no Compose e nas redes corretas; não substitui o
 componente por uma sonda. O [roteiro do vídeo](docs/parte3/05-roteiro-video.md)
 detalha a subida com volumes novos e as evidências a mostrar.
+
+Para validar a borda após a subida:
+
+```sh
+py -3 scripts/verificar-borda.py
+```
+
+Para demonstrar manualmente a emissão de JWT e as duas respostas diferentes:
+
+```powershell
+$prefeitura = Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8080/prefeitura/token `
+  -ContentType application/json `
+  -Body '{"sub":"gestor-1","papel":"gestor","instituicaoId":"00000000-0000-0000-0000-000000000001"}'
+
+$produtor = Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8080/produtor/token `
+  -ContentType application/json `
+  -Body '{"sub":"produtor-1","papel":"produtor","produtorId":"00000000-0000-0000-0000-000000000002"}'
+
+Invoke-RestMethod -Headers @{Authorization="Bearer $($prefeitura.token)"} `
+  -Uri http://127.0.0.1:8080/prefeitura/api/v1/dashboard
+
+Invoke-RestMethod -Headers @{Authorization="Bearer $($produtor.token)"} `
+  -Uri http://127.0.0.1:8080/produtor/api/v1/inicio
+```
 
 Para encerrar preservando os dados: `docker compose down`. Os quatro bancos e o
 RabbitMQ usam volumes nomeados. As credenciais iniciais são aplicadas somente na
