@@ -61,3 +61,6 @@ Executar após a subida completa:
 docker compose up -d --build --wait --wait-timeout 240
 py -3 scripts/verificar-borda.py
 ```
+
+O relatório consolidado dos resultados já executados está em
+[RESULTADOS-BORDA.md](RESULTADOS-BORDA.md).
