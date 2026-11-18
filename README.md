@@ -279,3 +279,7 @@ Os contratos também podem ser abertos em qualquer visualizador OpenAPI (por exe
     </td>
   </tr>
 </table>
+
+## Parte 3
+
+[Vídeo de apresentação de todos os integrantes — terceira etapa](https://drive.google.com/file/d/1mvpnf018JTYjkTYtWUa8cwXK-2PbKOam/view?usp=sharing)
