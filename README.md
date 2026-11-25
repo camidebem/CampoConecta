@@ -283,3 +283,7 @@ Os contratos também podem ser abertos em qualquer visualizador OpenAPI (por exe
 ## Parte 3
 
 [Vídeo de apresentação de todos os integrantes — terceira etapa](https://drive.google.com/file/d/1mvpnf018JTYjkTYtWUa8cwXK-2PbKOam/view?usp=sharing)
+
+### Sistema rodando: apenas comandos
+
+[Vídeo da subida do sistema completo e dos recursos em execução](docs/parte3/video/demonstracao-comandos.mp4): gravação do terminal mostrando o sistema completo subindo com um único comando e os recursos em execução.
