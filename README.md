@@ -324,6 +324,7 @@ A documentação da **Parte 2 (arquitetura)** fica em `docs/`. O ponto de partid
 | [Princípios e padrões](docs/parte2/08-padroes-e-principios.md) | SOLID, padrões GoF e padrões arquiteturais aplicados ao projeto |
 | [ADRs](docs/adr/README.md) | Decisões registradas com contexto, alternativas consideradas e consequências |
 | [Plano de trabalho](docs/planejamento/plano-parte2.md) | Distribuição das frentes, tarefas e matriz de fechamento |
+| [Plano da Parte 4](docs/planejamento/plano-parte4.md) | Sistema em funcionamento: front, SAGA, CQRS, assistente com LLM local, divisão e prazos |
 
 > A Parte 2 é documental: não há sistema em execução nesta etapa. A implementação, os containers e a integração de LLM pertencem às Partes 3 e 4.
 
