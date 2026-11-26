@@ -79,6 +79,104 @@ O CampoConecta atua como uma ponte direta entre a oferta (produtores locais) e a
 - **Logística:** A entrega dos alimentos é agendada e, posteriormente, confirmada fisicamente na escola recebedora.
 - **Pagamento:** Após a confirmação do recebimento da mercadoria, o sistema libera o pagamento ao produtor.
 
+<a id="visao-geral-arquitetura"></a>
+
+## 🏗️ Visão Geral da Arquitetura e Comunicação
+
+Os clientes acessam o sistema só pelo **API Gateway**, que valida o token no `authn-verify` e encaminha para o **BFF** de cada cliente. Os BFFs consultam os **quatro serviços de domínio**, cada um com o seu PostgreSQL (database per service). **Compras** orquestra a **SAGA** "confirmar compra" por mensagens no **RabbitMQ**, sempre via outbox, e mantém o **modelo de leitura do CQRS** (`acompanhamento_compra`).
+
+```mermaid
+flowchart TB
+    subgraph CLI["Clientes"]
+        direction LR
+        WEB["Portal web<br/>prefeitura e escola"]
+        APP["App móvel<br/>produtor"]
+    end
+
+    subgraph BORDA["Borda"]
+        direction LR
+        GW["API Gateway<br/>NGINX"]
+        AV["authn-verify<br/>valida JWT"]
+        BP["BFF prefeitura"]
+        BR["BFF produtor"]
+    end
+
+    subgraph DOM["Serviços de domínio, cada um com o seu PostgreSQL"]
+        direction LR
+        subgraph SE["Editais"]
+            direction TB
+            E["Editais"]
+            DE[("BD Editais<br/>+ outbox/inbox")]
+        end
+        subgraph SO["Ofertas"]
+            direction TB
+            O["Ofertas"]
+            DO[("BD Ofertas<br/>+ outbox/inbox")]
+        end
+        subgraph SC["Compras"]
+            direction TB
+            C["Compras<br/>orquestrador da SAGA"]
+            DCW[("BD Compras: escrita<br/>+ outbox/inbox")]
+            DCR[("BD Compras: leitura<br/>acompanhamento_compra")]
+        end
+        subgraph SL["Entregas"]
+            direction TB
+            L["Entregas"]
+            DL[("BD Entregas<br/>+ outbox/inbox")]
+        end
+    end
+
+    MQ{{"RabbitMQ<br/>comandos, respostas e eventos"}}
+
+    WEB -->|"/prefeitura/api/v1"| GW
+    APP -->|"/produtor/api/v1"| GW
+    GW -.->|"auth_request"| AV
+    GW --> BP
+    GW --> BR
+
+    BP --> E
+    BP --> C
+    BP --> L
+    BR --> E
+    BR --> O
+    BR --> C
+    BR --> L
+
+    C -->|"consulta"| E
+    C -->|"consulta"| O
+
+    E --> DE
+    O --> DO
+    C -->|"escrita"| DCW
+    C -->|"leitura"| DCR
+    L --> DL
+    DCW -.->|"projetor CQRS"| DCR
+
+    C <-.->|"comandos e respostas da SAGA"| MQ
+    MQ <-.->|"1 AlocarDemanda (compensável)"| E
+    MQ <-.->|"2 ReservarOferta (compensável)"| O
+    MQ <-.->|"3 AgendarEntrega (pivô)"| L
+
+    classDef cliente fill:#e0f7fa,stroke:#00838f,color:#004d40
+    classDef borda fill:#eceff1,stroke:#455a64,color:#263238
+    classDef servico fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
+    classDef orquestrador fill:#fff3e0,stroke:#e65100,color:#bf360c
+    classDef banco fill:#f5f5f5,stroke:#616161,color:#212121
+    classDef leitura fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
+    classDef broker fill:#fce4ec,stroke:#ad1457,color:#880e4f
+    class WEB,APP cliente
+    class GW,AV,BP,BR borda
+    class E,O,L servico
+    class C orquestrador
+    class DE,DO,DCW,DL banco
+    class DCR leitura
+    class MQ broker
+```
+
+Setas contínuas são chamadas HTTP; setas tracejadas são mensagens assíncronas (outbox → relay → RabbitMQ → inbox) ou a atualização da projeção CQRS. Os números são os passos da SAGA: **1 e 2 compensáveis, 3 pivô**, e o passo 4 (confirmar a compra, local em Compras) é **retentável**.
+
+A legenda completa, o caminho de uma requisição, o diagrama da SAGA aplicada sobre os serviços e o que já está implementado estão em [**Visão geral da arquitetura**](docs/parte2/09-visao-geral-arquitetura.md).
+
 ## Executar a Parte 3
 
 Pré-requisitos: Docker Engine ou Docker Desktop com contêineres Linux e Docker Compose v2.
@@ -215,6 +313,7 @@ A documentação da **Parte 2 (arquitetura)** fica em `docs/`. O ponto de partid
 | Documento | Conteúdo |
 |---|---|
 | [Base comum](docs/parte2/00-base-comum.md) | Referência única: escopo, serviços, SAGA, CQRS, outbox e organização dos documentos |
+| [Visão geral da arquitetura](docs/parte2/09-visao-geral-arquitetura.md) | Diagrama único de comunicação, caminho de uma requisição e a SAGA aplicada sobre os serviços (compensável, pivô e retentável) |
 | [Serviços e fronteiras](docs/parte2/01-servicos.md) | Decomposição, justificativa das fronteiras, alternativas descartadas, diagramas e padrões |
 | [Dados, consistência e outbox](docs/parte2/02-dados-outbox.md) | Modelo de dados, concorrência nas reservas, consistência eventual, outbox e inbox |
 | [CQRS em Compras](docs/parte2/03-cqrs.md) | Modelo de escrita e leitura, projeção `AcompanhamentoCompra`, defasagem e reconstrução |
@@ -246,14 +345,23 @@ Os contratos também podem ser abertos em qualquer visualizador OpenAPI (por exe
 
 | Critério | Peso | Onde está a evidência |
 |---|---:|---|
-| Decomposição e fronteiras dos serviços | 15% | [`01-servicos.md`](docs/parte2/01-servicos.md) §2–§4, com diagramas em §8–§9 |
+| Decomposição e fronteiras dos serviços | 15% | [`01-servicos.md`](docs/parte2/01-servicos.md) §2–§4, com diagramas em §8–§9; visão geral em [`09-visao-geral-arquitetura.md`](docs/parte2/09-visao-geral-arquitetura.md) |
 | Contrato REST | 15% | [`openapi/`](docs/parte2/openapi/README.md): seis contratos, versionamento justificado e HATEOAS em Compra |
 | Gateway e routing | 10% | [`04-gateway-bffs.md`](docs/parte2/04-gateway-bffs.md) §1–§2 e [`gateway/nginx`](docs/parte2/gateway/nginx/nginx.conf) |
 | BFF (2 clientes distintos) | 10% | [`04-gateway-bffs.md`](docs/parte2/04-gateway-bffs.md) §3–§4 e os dois contratos de BFF |
 | Database per service, consistência e outbox | 15% | [`02-dados-outbox.md`](docs/parte2/02-dados-outbox.md) §1–§10 |
-| SAGA | 20% | [`05-saga.md`](docs/parte2/05-saga.md) §6–§9 e [`06-mensagens.md`](docs/parte2/06-mensagens.md) |
+| SAGA | 20% | [`05-saga.md`](docs/parte2/05-saga.md) §6–§9, a SAGA aplicada em [`09-visao-geral-arquitetura.md`](docs/parte2/09-visao-geral-arquitetura.md) §4 e [`06-mensagens.md`](docs/parte2/06-mensagens.md) |
 | CQRS | 10% | [`03-cqrs.md`](docs/parte2/03-cqrs.md) |
 | Apresentação e arguição | 5% | demonstração oral a partir destes documentos |
+
+### Ajustes após a devolutiva da Parte 2
+
+| Apontamento | Antes | Depois |
+|---|---|---|
+| Faltava uma visão geral da arquitetura | Cada padrão (SAGA, CQRS, outbox, gateway/BFF) tinha os seus diagramas, mas nenhum mostrava o sistema inteiro | [Diagrama geral](docs/parte2/09-visao-geral-arquitetura.md) com clientes, gateway, authn-verify, BFFs, serviços, bancos com outbox/inbox, RabbitMQ, CQRS e os passos da SAGA, também reproduzido [no topo deste README](#visao-geral-arquitetura) |
+| A SAGA estava descrita, mas não aplicada à arquitetura | O fluxo era explicado em documento próprio, sem mostrar onde cada passo acontece nem o papel de cada passo | [SAGA aplicada sobre os serviços](docs/parte2/09-visao-geral-arquitetura.md#4-a-saga-aplicada-sobre-a-arquitetura), com cada passo classificado como compensável, pivô ou retentável, e a [classificação justificada](docs/parte2/05-saga.md#61-classificação-dos-passos-compensável-pivô-e-retentável) em `05-saga.md` |
+
+A SAGA, o outbox/relay e a projeção CQRS estão **projetados** na Parte 2. A infraestrutura que eles usam (bancos isolados por serviço e RabbitMQ) já está em execução desde a Parte 3, e a implementação, com a demonstração de uma falha e da compensação, é entregue na Parte 4.
 
 ## 👥 Integrantes
 

@@ -16,6 +16,8 @@ Confirmar uma compra exige efeitos em quatro serviços, cada um com seu próprio
 
 Como não existe transação de banco entre serviços, a confirmação é uma **SAGA**: uma sequência de transações locais, cada uma com uma **compensação** que desfaz seu efeito de negócio se um passo posterior falhar. A transação atravessa quatro serviços, acima do mínimo de três exigido.
 
+**Onde a SAGA acontece na arquitetura:** o diagrama geral do sistema, com os passos numerados sobre os serviços, e o diagrama da SAGA aplicada, com cada passo classificado como compensável, pivô ou retentável, estão em [`09-visao-geral-arquitetura.md`](./09-visao-geral-arquitetura.md), seções 1 e 4. A classificação também está na seção 6.1 deste documento.
+
 ## 2. Variante escolhida: orquestrada
 
 O serviço **Compras** é o orquestrador. Ele persiste o estado de cada SAGA, envia um comando por vez a cada participante e decide, a partir da resposta, se avança, repete ou compensa.
@@ -136,6 +138,22 @@ stateDiagram-v2
 | 4 | Compras | (interno) | Compra `CONFIRMADA`, SAGA `CONCLUIDA`, `CompraConfirmada` no outbox | — | — | Sem compensação: é o último passo. Cancelar depois disso é outro processo de negócio | — |
 
 **Por que o passo 3 tem compensação, se é o último participante:** `CancelarAgendamento` não é usado no caminho de rejeição do próprio agendamento, mas é necessário quando o resultado do agendamento é desconhecido (timeout) e a SAGA acaba compensando, ou quando uma resposta `EntregaAgendada` chega depois de a SAGA ter decidido cancelar (seção 9).
+
+### 6.1 Classificação dos passos: compensável, pivô e retentável
+
+| Passo | Serviço | Classificação | Significado neste fluxo |
+|---|---|---|---|
+| 0 | Compras | Compensável | A compra criada como `PENDENTE` é marcada `CANCELADA` se a SAGA não se completar |
+| 1 | Editais | **Compensável** | A reserva de saldo é desfeita por `LiberarDemanda` |
+| 2 | Ofertas | **Compensável** | A reserva de produção é desfeita por `LiberarOferta` |
+| 3 | Entregas | **Pivô** | Ponto de não retorno: se o agendamento é confirmado, a SAGA segue até o fim; se é rejeitado, os passos 2 e 1 são compensados |
+| 4 | Compras | **Retentável** | Confirmar a compra não pode ser rejeitado por regra de negócio; é idempotente e repetido até concluir |
+
+- **Compensável:** pode ser desfeito por uma transação compensatória se um passo posterior falhar.
+- **Pivô:** a última transação que pode falhar por regra de negócio. O resultado dela decide se a SAGA conclui ou compensa.
+- **Retentável:** vem depois do pivô e não falha por regra de negócio; em falha técnica, é repetido até concluir.
+
+**Por que Entregas é o pivô:** é o último passo que pode ser rejeitado por regra de negócio (falta de capacidade logística na janela da escola). Depois dele só resta o passo 4, local em Compras, que não tem motivo de negócio para falhar. `CancelarAgendamento` existe apenas para o caso em que o resultado do agendamento é **desconhecido** (timeout, seção 9.2) ou chega tarde (seção 9.3), isto é, quando o pivô ainda não foi decidido do ponto de vista do orquestrador.
 
 **Por que esta ordem:** Editais primeiro, porque o saldo da demanda é o recurso mais disputado (várias propostas para o mesmo item) e sua rejeição não deixa nada a desfazer. Ofertas em seguida, porque só faz sentido reservar produção para demanda garantida. Entregas por último, porque o agendamento depende de quantidade e produtor já confirmados.
 
