@@ -121,7 +121,7 @@ flowchart LR
     MQ -->|"respostas e eventos"| C
 ```
 
-Os dois diagramas mostram, respectivamente, o acesso HTTP com a propriedade dos bancos e a comunicação assíncrona. O diagrama de comunicação entregue na documentação deve unir ambos e acrescentar o relay do outbox e a inbox de cada consumidor.
+Os dois diagramas mostram, respectivamente, o acesso HTTP com a propriedade dos bancos e a comunicação assíncrona. A visão unificada, que junta os dois e acrescenta outbox/inbox, o modelo de leitura do CQRS e os passos da SAGA sobre os serviços, está em [`09-visao-geral-arquitetura.md`](./09-visao-geral-arquitetura.md).
 
 **Regras de comunicação**
 
@@ -364,6 +364,7 @@ Usar este documento como `docs/parte2/00-base-comum.md` e, no README da raiz, in
 | `docs/parte2/05-saga.md` | Estados, passos, compensações e sequências |
 | `docs/parte2/06-mensagens.md` | Envelope, comandos, eventos e exemplos |
 | `docs/parte2/07-validacao.md` | Matriz de cobertura e roteiro de apresentação |
+| `docs/parte2/09-visao-geral-arquitetura.md` | Diagrama geral do sistema e a SAGA aplicada sobre a arquitetura |
 | `docs/adr/` | Decisões com contexto, alternativas e consequências |
 
 Na Parte 2, o README deve explicar como consultar e validar os contratos e diagramas e declarar honestamente o que ainda não é executável. As instruções para subir o sistema completo entram quando a implementação existir.
